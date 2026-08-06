@@ -408,9 +408,18 @@ def _modernize_section(unit: Unit, section: str) -> str:
         section = section.replace("into `main`", f"into `{unit.sandbox}`")
 
     # Older source prose can describe the pre-v2 implementation. Keep its conceptual
-    # detail, but the canonical operational checklist below always wins.
+    # detail, but normalize obsolete operational wording before the canonical checklist.
     section = section.replace("Our integrated lab", "The interactive exercise")
     section = section.replace("Our integrated exercise", "The interactive exercise")
+    section = section.replace("The integrated course", "The interactive exercise")
+    section = section.replace("in the learner's own fork", "in the temporary learner workspace")
+    section = section.replace("in the learner’s own fork", "in the temporary learner workspace")
+    section = section.replace("in the worksheet", "in the course Issue reflection")
+    section = section.replace("the worksheet", "the course Issue reflection")
+    section = section.replace(
+        "delete the merged source branch when instructed",
+        "let the course clean the temporary branches after validation",
+    )
     return section
 
 
