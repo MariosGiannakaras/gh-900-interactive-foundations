@@ -16,7 +16,6 @@ concurrency:
 
 jobs:
   validate:
-    # This is a source-maintenance gate, not learner-course runtime.
     if: github.event.repository.is_template
     runs-on: ubuntu-24.04
     timeout-minutes: 25
@@ -62,28 +61,24 @@ jobs:
             exit 1
           }
 
-      - name: Validate official curriculum inventory
-        run: python3 scripts/check_curriculum_manifest.py
-
-      - name: Audit complete 16-module interactive course
-        run: python3 scripts/audit_complete_course.py
-
-      - name: Verify learner runtime package sync
-        run: python3 scripts/sync_learner_runtime.py
-
-      - name: Validate clean learner runtime v2
-        run: python3 scripts/test_learner_runtime_v2.py
-
-      - name: Audit public repository hardening
-        run: python3 scripts/audit_public_repository.py
-
-      - name: Validate source-authoring 106-unit chain
-        run: python3 scripts/test_course_runtime.py
+      - name: Audit public repository and complete 106-unit runtime
+        run: python3 .gh900/quality/audit.py
 
       - name: Audit semantic depth against pinned Microsoft source
-        run: python3 scripts/audit_microsoft_semantic_depth.py
+        run: python3 .gh900/quality/semantic.py
 
-      - name: Parse workflow YAML files
+      - name: Compile runtime and quality helpers
+        run: >-
+          python3 -m py_compile
+          .gh900/course_unit_state.py
+          .gh900/workspace.py
+          .gh900/validate_activity.py
+          .gh900/validate_assessment.py
+          .gh900/validate_scenario.py
+          .gh900/quality/audit.py
+          .gh900/quality/semantic.py
+
+      - name: Parse workflow YAML
         shell: bash
         run: |
           ruby <<'RUBY'
@@ -129,66 +124,55 @@ jobs:
           puts "All Bash/default-shell workflow run blocks parse successfully."
           RUBY
 
-      - name: Compile Python validators and course engine helpers
-        run: >-
-          python3 -m py_compile
-          scripts/check_curriculum_manifest.py
-          scripts/audit_complete_course.py
-          scripts/audit_public_repository.py
-          scripts/audit_microsoft_semantic_depth.py
-          scripts/course_unit_state.py
-          scripts/test_course_runtime.py
-          scripts/test_learner_runtime_v2.py
-          scripts/sync_learner_runtime.py
-          scripts/validate_unit_activity.py
-          scripts/validate_module_01.py
-          scripts/validate_course_module.py
-          .gh900/course_unit_state.py
-          .gh900/workspace.py
-          .gh900/validate_activity.py
-          .gh900/validate_assessment.py
-          .gh900/validate_scenario.py
-
-      - name: Confirm untouched Module 1 assessment is rejected
+      - name: Confirm malformed assessments are rejected
         shell: bash
         run: |
-          set +e
-          python3 scripts/validate_module_01.py
-          result=$?
-          set -e
-          if [[ "$result" -ne 2 ]]; then
-            echo "Expected untouched Module 1 assessment to fail with exit code 2, got $result."
-            exit 1
-          fi
-
-      - name: Confirm untouched Modules 2-16 submissions are rejected
-        shell: bash
-        run: |
-          for n in $(seq 2 16); do
+          set -euo pipefail
+          for module in $(seq 1 16); do
             set +e
-            python3 scripts/validate_course_module.py --module "$n" >/tmp/module-result.txt 2>&1
+            python3 .gh900/validate_assessment.py --module "$module" --answers "A" >/tmp/assessment.txt 2>&1
             result=$?
             set -e
             if [[ "$result" -eq 0 ]]; then
-              echo "Untouched Module $n unexpectedly passed assessment validation."
-              cat /tmp/module-result.txt
+              echo "Malformed Module $module assessment unexpectedly passed."
+              cat /tmp/assessment.txt
               exit 1
             fi
           done
-          echo "All untouched assessments are correctly rejected."
+          echo "All malformed assessments are rejected."
 
-      - name: Confirm untouched source hands-on checkpoints are rejected
+      - name: Confirm shallow scenarios are rejected
         shell: bash
         run: |
-          for n in $(seq 1 16); do
+          set -euo pipefail
+          for unit in m03-u07 m07-u06 m12-u05 m13-u05; do
             set +e
-            python3 scripts/validate_unit_activity.py --module "$n" >/tmp/activity-result.txt 2>&1
+            python3 .gh900/validate_scenario.py --unit "$unit" --response "too short" >/tmp/scenario.txt 2>&1
             result=$?
             set -e
             if [[ "$result" -eq 0 ]]; then
-              echo "Untouched Module $n unexpectedly passed hands-on validation."
-              cat /tmp/activity-result.txt
+              echo "Shallow scenario $unit unexpectedly passed."
+              cat /tmp/scenario.txt
               exit 1
             fi
           done
-          echo "All untouched source hands-on checkpoints are correctly rejected."
+          echo "All shallow scenario responses are rejected."
+
+      - name: Confirm unprepared hands-on states are rejected
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 .gh900/course_unit_state.py --list-json \
+            | jq -r '.[] | select(.mode == "activity") | .id' \
+            | while read -r unit; do
+                set +e
+                python3 .gh900/validate_activity.py --unit "$unit" >/tmp/activity.txt 2>&1
+                result=$?
+                set -e
+                if [[ "$result" -eq 0 ]]; then
+                  echo "Unprepared activity $unit unexpectedly passed."
+                  cat /tmp/activity.txt
+                  exit 1
+                fi
+              done
+          echo "All unprepared hands-on states are rejected."

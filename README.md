@@ -5,78 +5,88 @@
 ![Template](https://img.shields.io/badge/GitHub-template-8250df?logo=github)
 [![License: MIT](https://img.shields.io/badge/license-MIT-2da44e)](LICENSE)
 
-A self-contained, interactive **GH-900: GitHub Foundations** course covering **2 / 2 Microsoft Learn learning paths, 16 / 16 modules, and 106 / 106 official units** in sequence.
+An interactive **GH-900: GitHub Foundations** course implemented directly on GitHub.
 
-The learner experience is designed around GitHub itself: lessons, assessments, progress, validation, and feedback appear in one live course Issue. Temporary repository files and branches are created only when the current unit requires them and are cleaned after validation.
+It covers **2 / 2 Microsoft Learn learning paths, 16 / 16 modules, and 106 / 106 official units** in sequence. Lessons, assessments, hands-on instructions, validation feedback, and progress are presented in one live GitHub Issue. Exercise files exist only when editing a file is part of the current lesson.
 
-This project is independently written and is not an official Microsoft or GitHub product. Microsoft Learn is used as the public curriculum/source baseline; Microsoft and GitHub trademarks belong to their respective owners.
+This is an independently written educational project and is not an official Microsoft or GitHub product. Microsoft Learn is used as the public curriculum/source baseline.
 
 [![Copy Exercise](https://img.shields.io/badge/Copy%20Exercise-%E2%86%92-1f883d?style=for-the-badge&logo=github)](https://github.com/new?template_owner=MariosGiannakaras&template_name=gh-900-interactive-foundations&owner=%40me&name=gh-900-interactive-foundations-course&description=Interactive%20GH-900%20GitHub%20Foundations%20course&visibility=public)
 
-> **To take the course:** select **Copy Exercise**, create a repository from the template, then open the course Issue that starts automatically.
+> **Start here:** select **Copy Exercise**, create a repository from the template, then open the course Issue that starts automatically.
 
-## Quick start
+## How it works
 
-1. Select **Copy Exercise**.
-2. Create a repository under your GitHub account.
-3. Open the new repository.
-4. Wait for **Step 0 - Start GH-900 Course** to initialize the learner workspace.
-5. Open **GH-900 Interactive Foundations — Course** under Issues.
-6. Follow only the latest instruction in that Issue.
+The learner experience is **Issue-first**.
 
-There is no normal **Actions → Run workflow** setup step. `workflow_dispatch` exists only as a recovery mechanism.
+1. Create a repository from this template.
+2. **Step 0 - Start GH-900 Course** initializes the learner copy automatically.
+3. Open **GH-900 Interactive Foundations — Course** under Issues.
+4. Follow the latest lesson in that Issue.
+5. Reading units advance with `/next`.
+6. Assessments are answered directly in the Issue.
+7. Hands-on units create only the temporary files/branches needed for that exercise.
+8. The course validates Git/GitHub state automatically.
+9. Successful temporary exercises are cleaned before the next lesson.
 
-## What the learner sees
+There is no normal **Actions → Run workflow** setup step. Manual workflow dispatch exists only for recovery.
 
-The course is intentionally **Issue-first**, not file-first.
+## A clean workspace for every lesson
 
-A normal unit is presented directly in the course Issue with:
+A learner repository is deliberately kept close to empty.
 
-- Part, module, unit, and total-course progress;
-- the complete independently written lesson for that unit;
-- source-audited detail where needed;
-- the current hands-on task or assessment;
-- automatic feedback and the exact next action.
+Permanent learner-visible content is essentially:
 
-Learners do **not** need to browse `modules/`, `curriculum/`, `labs/`, or internal validator files to study. Those are source-maintenance assets in the upstream template.
+```text
+README.md
+.github/workflows/   # course automation
+.gh900/              # internal course engine
+```
 
-Files appear in the learner repository only when editing a file is itself part of the current exercise.
-
-## Clean per-unit workspace
-
-A copied learner repository is automatically reduced to the minimum course runtime. Source-maintenance directories are removed from the learner's `main` branch.
-
-For a hands-on unit, the engine creates an isolated temporary workspace:
+When a hands-on unit starts, the engine creates an isolated temporary workspace:
 
 ```text
 main
-  └─ sandbox/mXX-uYY       ← generated baseline for this unit
-       └─ lab/mXX-uYY      ← learner work
+  └─ sandbox/mXX-uYY      # generated baseline
+       └─ lab/mXX-uYY     # learner work
 ```
 
-Only the artifacts required by that unit are generated. Examples include:
+Only the artifacts required by that unit are generated. Depending on the lesson this might be:
 
-- a small Git practice fixture;
-- one Markdown file;
+- a small Git practice file;
+- a Markdown document;
 - a temporary `.devcontainer/devcontainer.json`;
 - a Python file and tests;
-- `SECURITY.md` and `CODEOWNERS` when creating those files is the lesson itself.
+- a temporary CodeQL configuration;
+- `SECURITY.md`, `.gitignore`, Dependabot, or `CODEOWNERS` when creating those files is the exercise itself.
 
-After successful validation, the course removes the temporary lab/sandbox branches and temporary exercise state. The next lesson therefore starts from a clean workspace unless prior repository state is genuinely necessary for that lesson.
+After successful validation, temporary branches, exercise files, labels, milestones, or Issues created solely for the lesson are removed or closed as appropriate.
 
-The goal is effectively:
+The intended lifecycle is:
 
 ```text
 clean workspace → current lesson → validate → cleanup → next lesson
 ```
 
+State is carried forward only when the next lesson genuinely needs it.
+
+## What appears in the course Issue
+
+Every unit is rendered directly into the course interface with:
+
+- **Part 1 / Part 2** position;
+- module and unit number;
+- total progress out of **106**;
+- the complete independently written lesson for that unit;
+- additional source-audited detail where needed;
+- the current exercise, assessment, or scenario;
+- the exact action required to continue.
+
+Learners are never instructed to browse internal course files in order to study. A file is opened only when working with that file is itself the practical task.
+
 ## Microsoft Learn structure
 
-The learner sees the same high-level separation as the Microsoft Learn curriculum.
-
-### Part 1 of 2
-
-**Modules 1–8 · 57 units**
+### Part 1 of 2 — 8 modules / 57 units
 
 1. Introduction to Git
 2. Introduction to GitHub
@@ -87,11 +97,9 @@ The learner sees the same high-level separation as the Microsoft Learn curriculu
 7. Manage your work with GitHub Projects
 8. Communicate effectively on GitHub using Markdown
 
-After Module 8 the course explicitly marks **Part 1 complete**.
+The course explicitly marks **Part 1 complete** before Part 2 begins.
 
-### Part 2 of 2
-
-**Modules 9–16 · 49 units**
+### Part 2 of 2 — 8 modules / 49 units
 
 9. Contribute to an open-source project on GitHub
 10. Manage an InnerSource program by using GitHub
@@ -102,21 +110,11 @@ After Module 8 the course explicitly marks **Part 1 complete**.
 15. Search and organize repository history by using GitHub
 16. Using GitHub Copilot with Python
 
-Total: **16 modules / 106 units**.
+**Total: 16 modules / 106 units.**
 
-## Course interaction
+## Interaction model
 
-The live state advances one official unit at a time:
-
-```text
-Part 1: M01 U01 → ... → M08 U05
-Part 2: M09 U01 → ... → M16 U07
-Course complete
-```
-
-Unit modes are intentionally different depending on what can be demonstrated safely.
-
-### Reading and summary
+### Reading and summary units
 
 Read the lesson in the Issue and comment:
 
@@ -124,42 +122,53 @@ Read the lesson in the Issue and comment:
 /next
 ```
 
-### Hands-on activity
+### Assessments
 
-The engine creates only the required temporary branch/files. Perform the task and push the requested changes. Validation runs from repository/GitHub state rather than from a generic answer worksheet.
-
-For Pull Request exercises, the PR is opened between temporary course branches rather than into `main`, so completing the exercise does not pollute the learner's permanent workspace.
-
-### Assessment
-
-Questions are displayed directly in the Issue. No assessment file needs to be opened or edited.
-
-Submit answers in order, for example:
+Questions and answer choices are shown directly in the Issue. Submit the letters in order:
 
 ```text
 /answer B C A B A C
 ```
 
-The validator identifies only the questions that need review; it does not reveal the correct answer key.
+The validator reports only the questions that need review. Correct answers are not printed in normal course output.
 
-### Scenario / Enterprise-only activity
+### Hands-on units
 
-When a real personal repository cannot safely reproduce an Enterprise, identity-provider, billing, or organization-level feature, the course presents the scenario directly in the Issue.
+The Issue provides the complete checklist. The engine creates the exact temporary repository state required for the exercise.
 
-Respond with:
+Depending on the unit, completion is detected from commits, diffs, branches, tags, Issues, Pull Requests, review state, generated configuration, tests, or other GitHub state. Generic `submission.md` answer worksheets are not used.
+
+If a manual recheck is needed:
 
 ```text
-/scenario <reasoned answer>
+/check
 ```
 
-The response is checked for the required concepts without creating a worksheet file.
+Some exercises also request a reasoned observation directly in the Issue:
 
-### Recovery commands
+```text
+/reflection <your observation>
+```
 
-- `/help` — show the current unit again.
-- `/check` — manually re-run the current hands-on state validation when needed.
+### Scenario units
 
-## Course at a glance
+Enterprise, billing, identity-provider, or organization-level capabilities cannot always be safely provisioned in an ordinary personal repository. Those units remain interactive without pretending that unavailable infrastructure exists:
+
+```text
+/scenario <reasoned response>
+```
+
+The validator checks for the concepts required by the scenario.
+
+### Help
+
+```text
+/help
+```
+
+re-renders the current unit.
+
+## Course coverage
 
 | Item | Coverage |
 |---|---:|
@@ -169,106 +178,94 @@ The response is checked for the required concepts without creating a worksheet f
 | Part 1 | **8 modules / 57 units** |
 | Part 2 | **8 modules / 49 units** |
 | Progression | **Unit by unit** |
-| Lessons | **Displayed in the Issue** |
+| Lessons | **Issue-native** |
 | Assessments | **Issue-native, original blind questions** |
 | Hands-on state | **Generated on demand** |
 | Cleanup | **Automatic after validation** |
 
-The curriculum is not an exam-cram summary. Every official unit is represented in sequence and covered in independently written wording. Where a feature cannot reasonably be provisioned in a personal learner repository, the course uses a transparent scenario/read-only equivalent instead of pretending the feature was exercised.
+The course is not an exam-cram summary. Every official unit is represented in the locked sequence. Paid or Enterprise-only concepts are not silently omitted; they use an explicit scenario/read-only equivalent when a personal repository cannot reproduce the real administrative environment.
 
-See [`docs/COVERAGE.md`](docs/COVERAGE.md) for the full completeness contract.
+## Source baseline
 
-## Source baseline and traceability
-
-The curriculum is audited against the pinned public Microsoft Learn source snapshot:
+The course is audited against:
 
 ```text
 MicrosoftDocs/learn@66ab07a355b38fb0f5a4cef8240eb2f765c839c8
 Baseline date: 2026-08-06
 ```
 
-Source-maintenance files include:
+The canonical maintained source is intentionally compact:
 
-- [`curriculum/official-curriculum.yml`](curriculum/official-curriculum.yml) — canonical 2-path / 16-module / 106-unit inventory;
-- [`curriculum/microsoft-source-lock.json`](curriculum/microsoft-source-lock.json) — pinned Microsoft Learn source map;
-- [`docs/COVERAGE.md`](docs/COVERAGE.md) — completeness and GH-900 blueprint cross-check;
-- `modules/` and `unit-details/` — maintainable independently written source content;
-- `.gh900/` — generated/packaged learner runtime content, templates, and validators.
+```text
+README.md
+LICENSE
+.github/
+  workflows/
+  CONTRIBUTING.md
+  CODE_OF_CONDUCT.md
+  SECURITY.md
+  ARCHITECTURE.md
+  MAINTAINING.md
+.gh900/
+  content/       # Part 1 / Part 2 independently written lesson source
+  details/       # additional audited depth
+  data/          # curriculum, source lock, assessment hashes
+  templates/     # temporary exercise fixtures
+  quality/       # source/regression audits
+  *.py           # learner runtime and validators
+```
 
-These source-maintenance directories exist in the upstream template so the course can be audited and maintained. **Step 0 removes the source-only material from learner copies.**
+There are no parallel `modules/`, `labs/`, `course-content/`, `unit-details/`, or `curriculum/` trees. `.gh900/` is the single canonical course package.
 
-This repository does not reproduce Microsoft Learn prose or Microsoft's knowledge-check question bank verbatim.
-
-## Repository structure
-
-The upstream source is intentionally different from a learner copy.
-
-| Path | Upstream responsibility |
-|---|---|
-| `modules/` | Maintainable unit-by-unit lesson source |
-| `unit-details/` | Additional source-audited depth |
-| `labs/` | Internal fixture/question source used to build temporary exercises |
-| `curriculum/` | Canonical inventory and source traceability |
-| `.gh900/` | Packaged learner runtime, Part 1/Part 2 content, templates, validators |
-| `.github/workflows/` | Automatic startup, course engine, source quality gate |
-| `scripts/` | Source audits and regression tests |
-| `docs/` | Coverage, architecture, and maintenance documentation |
-
-The former duplicate `course/` and incomplete `course-content/` structures are not part of the runtime architecture.
-
-See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
+The repository does not reproduce Microsoft Learn prose or Microsoft's knowledge-check question bank verbatim.
 
 ## Quality gates
 
-The upstream template runs **Course Quality** for source changes. It verifies, among other things:
+The source template runs **Course Quality**, which verifies:
 
 - exact **2 / 2 paths, 16 / 16 modules, 106 / 106 units**;
-- Part 1 = 57 units and Part 2 = 49 units;
-- the full source-authoring and packaged learner state chains;
-- successful rendering of every learner-visible unit;
-- all 16 assessments rendered directly in the Issue;
-- isolated per-unit branch naming and cleanup contracts;
-- source resolution against the pinned Microsoft Learn commit;
-- learner-visible semantic depth;
-- workflow YAML and Bash syntax;
-- Python validator compilation;
-- rejection of untouched source fixtures;
+- Part 1 = **57** units and Part 2 = **49** units;
+- exact runtime order from `m01-u01` through `m16-u07`;
+- successful Issue rendering of every unit;
+- Issue-native assessments and scenarios;
+- isolated lab/sandbox branch contracts;
+- pinned Microsoft Learn source resolution;
+- semantic depth of learner-visible output;
+- Python compilation;
+- workflow YAML and embedded Bash syntax;
+- rejection of malformed assessments, shallow scenarios, and unprepared activities;
 - public-repository/community requirements;
 - immutable full-SHA references for external Actions.
 
-`Course Quality` is source-maintenance CI only. A learner copy does not re-run the full upstream curriculum audit.
+`Course Quality` is source-maintenance CI only. Learner copies do not run the full upstream source audit.
 
 ## Security model
 
-Course automation follows explicit trust boundaries and least privilege:
+The automation is designed around explicit trust boundaries:
 
-- the upstream template does not create learner progress;
-- learner runtime activates only in non-template copies;
-- source quality activates only in the template repository;
+- the template source itself never creates learner progress;
+- learner automation runs only in non-template copies;
+- source-quality CI runs only in the template repository;
 - workflow permissions are declared explicitly;
-- public drive-by comments and Pull Requests are filtered before learner jobs execute;
-- Pull Request exercises use temporary sandbox branches rather than merging exercise content into `main`;
-- temporary branches and exercise artifacts are deleted after validation;
+- drive-by Issue comments and untrusted fork Pull Requests are rejected before course execution;
+- PR exercises use temporary sandbox branches instead of merging exercise content into `main`;
+- temporary exercise state is removed after validation;
 - external Actions are pinned to immutable commit SHAs;
-- no learner exercise requires committing a real secret.
+- no exercise requires a real secret.
 
-Security reports should follow [`.github/SECURITY.md`](.github/SECURITY.md). Never place credentials, tokens, private keys, or exploit details in a public Issue.
-
-## Assessment integrity
-
-Correct answers are stored as hashes rather than printed beside the questions. Normal validation reports only the questions requiring review.
-
-Because a learner owns their copied repository, this is an educational integrity mechanism rather than DRM. For realistic exam preparation, avoid inspecting or modifying `.gh900/` while taking assessments.
+Report security issues using [`.github/SECURITY.md`](.github/SECURITY.md). Do not post credentials, exploit details, or private vulnerability information in a public Issue.
 
 ## Contributing
 
-Contributions are welcome for factual corrections, accessibility, course-engine reliability, security, validation quality, and independently written curriculum improvements. Changes must preserve the 2-path / 16-module / 106-unit contract and source traceability.
+Corrections and improvements are welcome when they preserve curriculum completeness, independent wording, learner safety, and the clean per-unit workspace model.
 
-Read [`.github/CONTRIBUTING.md`](.github/CONTRIBUTING.md) before opening a Pull Request. Community participation is covered by [`.github/CODE_OF_CONDUCT.md`](.github/CODE_OF_CONDUCT.md).
+Read [`.github/CONTRIBUTING.md`](.github/CONTRIBUTING.md) and [`.github/MAINTAINING.md`](.github/MAINTAINING.md) before changing course content or runtime behavior.
 
 ## License and attribution
 
-Original material and code in this repository are available under the [MIT License](LICENSE), except where a file explicitly states otherwise. Microsoft, GitHub, Microsoft Learn, GH-900, and related names or marks belong to their respective owners.
+Original material and code in this repository are available under the [MIT License](LICENSE), except where a file explicitly states otherwise.
+
+Microsoft, GitHub, Microsoft Learn, GH-900, and related names or marks belong to their respective owners.
 
 Reference sources:
 
@@ -279,8 +276,4 @@ Reference sources:
 - [GitHub Docs](https://docs.github.com/)
 - [Git documentation](https://git-scm.com/doc)
 
-## Maintainer documentation
-
-- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)
-- [`docs/MAINTAINING.md`](docs/MAINTAINING.md)
-- [`docs/COVERAGE.md`](docs/COVERAGE.md)
+For implementation details, see [`.github/ARCHITECTURE.md`](.github/ARCHITECTURE.md).

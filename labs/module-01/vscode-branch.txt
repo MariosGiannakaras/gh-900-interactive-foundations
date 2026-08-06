@@ -1,3 +1,0 @@
-Module 1 VS Code branch practice
-
-TODO: Replace this line only when the interactive course reaches the VS Code branching step.

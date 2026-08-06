@@ -1,3 +1,0 @@
-Game status: ready
-Current score: 0
-Temporary status line: remove me during the diff exercise
