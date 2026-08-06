@@ -2,9 +2,8 @@
 """Hardened entrypoint for GH-900 hands-on validation.
 
 The large module-specific implementation lives in validate_activity_core.py. This
-entrypoint patches cross-cutting runtime contracts that are easier to test and reason
-about centrally: immutable setup baselines, full Issue-comment pagination, and direct
-behavior checks for generated Python exercises.
+entrypoint adds cross-cutting checks for complete Issue-comment pagination and direct
+behavior validation of generated Python exercises while preserving the core logic.
 """
 from __future__ import annotations
 
@@ -20,34 +19,23 @@ import validate_activity_core as core
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def changed_from_sandbox(unit: str, rel: str) -> bool:
-    """Compare learner output with the immutable [gh900 setup] commit.
-
-    PR exercises may already have been merged into the sandbox by the time validation
-    runs. Comparing HEAD to the *current* sandbox would therefore erase the learner
-    diff and incorrectly fail a valid exercise.
-    """
-    baseline = core.baseline_commit(unit)
-    if not baseline:
-        return False
-    return core.git("diff", "--quiet", f"{baseline}...HEAD", "--", rel).returncode == 1
-
-
 def course_comment_bodies(prefix: str) -> list[str]:
-    """Read every course comment, not only the first page returned by gh issue view."""
+    """Read every course comment, not only a GraphQL/CLI first-page projection."""
     if not os.environ.get("GITHUB_ACTIONS"):
         return []
-    issue = core.course_issue()
     repo = os.environ.get("GITHUB_REPOSITORY", "")
-    if not issue or not repo:
+    if not repo:
         return []
-    number = issue.get("number")
-    if not number:
+    rows = core.gh_json(["issue", "list", "--state", "all", "--limit", "100", "--json", "number,title"])
+    if not isinstance(rows, list):
+        return []
+    hit = next((row for row in rows if row.get("title") == core.COURSE_TITLE), None)
+    if not hit:
         return []
     result = subprocess.run(
         [
             "gh", "api", "--paginate",
-            f"repos/{repo}/issues/{number}/comments",
+            f"repos/{repo}/issues/{hit['number']}/comments",
             "--jq", ".[].body",
         ],
         cwd=ROOT,
@@ -60,7 +48,12 @@ def course_comment_bodies(prefix: str) -> list[str]:
 
 
 def _run_python(code: str, cwd: Path) -> tuple[bool, str]:
-    result = subprocess.run([sys.executable, "-c", code], cwd=cwd, text=True, capture_output=True)
+    if not cwd.exists():
+        return False, f"Exercise directory is missing: {cwd.relative_to(ROOT)}"
+    try:
+        result = subprocess.run([sys.executable, "-c", code], cwd=cwd, text=True, capture_output=True)
+    except OSError as exc:
+        return False, str(exc)
     return result.returncode == 0, (result.stdout + "\n" + result.stderr).strip()
 
 
@@ -122,7 +115,6 @@ core._validate_module5_original = core.validate_module5
 core._validate_module8_original = core.validate_module8
 core._validate_module14_original = core.validate_module14
 core._validate_module16_original = core.validate_module16
-core.changed_from_sandbox = changed_from_sandbox
 core.course_comment_bodies = course_comment_bodies
 core.validate_module5 = validate_module5
 core.validate_module8 = validate_module8
