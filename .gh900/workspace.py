@@ -263,6 +263,7 @@ def prepare(unit: str) -> None:
     elif module == 16:
         copy_template(16, "app.py", "exercise/app.py")
         copy_template(16, "test_app.py", "exercise/test_app.py")
+        copy_template(16, "requirements.txt", "exercise/requirements.txt")
 
     else:
         write(
