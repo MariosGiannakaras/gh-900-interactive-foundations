@@ -47,11 +47,12 @@ def load_units() -> list[Unit]:
         module = int(unit_id[1:3])
         number = int(unit_id[-2:])
         key = f"{module:02d}"
+        lower_title = title.lower()
         if unit_id in READ_OVERRIDES:
             mode = "read"
-        elif unit_id in ACTIVITY_OVERRIDES or title.lower().startswith("exercise"):
+        elif unit_id in ACTIVITY_OVERRIDES or "exercise" in lower_title:
             mode = "activity"
-        elif "assessment" in title.lower() or "knowledge check" in title.lower():
+        elif "assessment" in lower_title or "knowledge check" in lower_title:
             mode = "assessment"
         elif title.strip().lower() == "summary":
             mode = "summary"
