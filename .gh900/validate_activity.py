@@ -8,6 +8,7 @@ behavior validation of generated Python exercises while preserving the core logi
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import py_compile
 import subprocess
@@ -20,7 +21,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def course_comment_bodies(prefix: str) -> list[str]:
-    """Read every course comment, not only a GraphQL/CLI first-page projection."""
+    """Read complete course comments across all REST pages, preserving newlines."""
     if not os.environ.get("GITHUB_ACTIONS"):
         return []
     repo = os.environ.get("GITHUB_REPOSITORY", "")
@@ -32,19 +33,35 @@ def course_comment_bodies(prefix: str) -> list[str]:
     hit = next((row for row in rows if row.get("title") == core.COURSE_TITLE), None)
     if not hit:
         return []
-    result = subprocess.run(
-        [
-            "gh", "api", "--paginate",
-            f"repos/{repo}/issues/{hit['number']}/comments",
-            "--jq", ".[].body",
-        ],
-        cwd=ROOT,
-        text=True,
-        capture_output=True,
-    )
-    if result.returncode != 0:
-        return []
-    return [line.strip() for line in result.stdout.splitlines() if line.strip().lower().startswith(prefix.lower())]
+
+    bodies: list[str] = []
+    page = 1
+    while True:
+        result = subprocess.run(
+            [
+                "gh", "api",
+                f"repos/{repo}/issues/{hit['number']}/comments?per_page=100&page={page}",
+            ],
+            cwd=ROOT,
+            text=True,
+            capture_output=True,
+        )
+        if result.returncode != 0:
+            return bodies
+        try:
+            comments = json.loads(result.stdout)
+        except json.JSONDecodeError:
+            return bodies
+        if not isinstance(comments, list) or not comments:
+            break
+        for comment in comments:
+            body = str(comment.get("body", "")).strip()
+            if body.lower().startswith(prefix.lower()):
+                bodies.append(body)
+        if len(comments) < 100:
+            break
+        page += 1
+    return bodies
 
 
 def _run_python(code: str, cwd: Path) -> tuple[bool, str]:
