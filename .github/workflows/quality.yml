@@ -68,10 +68,13 @@ jobs:
       - name: Audit complete 16-module interactive course
         run: python3 scripts/audit_complete_course.py
 
+      - name: Validate clean learner runtime v2
+        run: python3 scripts/test_learner_runtime_v2.py
+
       - name: Audit public repository hardening
         run: python3 scripts/audit_public_repository.py
 
-      - name: Validate full 106-unit runtime chain
+      - name: Validate source-authoring 106-unit chain
         run: python3 scripts/test_course_runtime.py
 
       - name: Audit semantic depth against pinned Microsoft source
@@ -132,9 +135,15 @@ jobs:
           scripts/audit_microsoft_semantic_depth.py
           scripts/course_unit_state.py
           scripts/test_course_runtime.py
+          scripts/test_learner_runtime_v2.py
           scripts/validate_unit_activity.py
           scripts/validate_module_01.py
           scripts/validate_course_module.py
+          .gh900/course_unit_state.py
+          .gh900/workspace.py
+          .gh900/validate_activity.py
+          .gh900/validate_assessment.py
+          .gh900/validate_scenario.py
 
       - name: Confirm untouched Module 1 assessment is rejected
         shell: bash
@@ -164,7 +173,7 @@ jobs:
           done
           echo "All untouched assessments are correctly rejected."
 
-      - name: Confirm untouched hands-on checkpoints are rejected
+      - name: Confirm untouched source hands-on checkpoints are rejected
         shell: bash
         run: |
           for n in $(seq 1 16); do
@@ -178,4 +187,4 @@ jobs:
               exit 1
             fi
           done
-          echo "All untouched hands-on checkpoints are correctly rejected."
+          echo "All untouched source hands-on checkpoints are correctly rejected."
