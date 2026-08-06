@@ -24,7 +24,15 @@ jobs:
         run: python3 scripts/audit_complete_course.py
 
       - name: Parse workflow YAML files
-        run: ruby -e 'require "yaml"; Dir[".github/workflows/*.{yml,yaml}"].each { |f| YAML.parse_file(f); puts "parsed #{f}" }'
+        shell: bash
+        run: |
+          ruby <<'RUBY'
+          require "yaml"
+          Dir[".github/workflows/*.{yml,yaml}"].each do |file|
+            YAML.parse_file(file)
+            puts "parsed #{file}"
+          end
+          RUBY
 
       - name: Compile Python validators
         run: >-
