@@ -48,14 +48,8 @@ jobs:
       - name: Audit complete 16-module interactive course
         run: python3 scripts/audit_complete_course.py
 
-      - name: Validate 106-unit state model
-        shell: bash
-        run: |
-          python3 scripts/course_unit_state.py --list-json > /tmp/units.json
-          test "$(jq length /tmp/units.json)" -eq 106
-          test "$(jq -r '.[0].id' /tmp/units.json)" = "m01-u01"
-          test "$(jq -r '.[-1].id' /tmp/units.json)" = "m16-u07"
-          echo "Unit state model validated: 106 sequential units."
+      - name: Validate full 106-unit runtime chain
+        run: python3 scripts/test_course_runtime.py
 
       - name: Audit semantic depth against pinned Microsoft source
         run: python3 scripts/audit_microsoft_semantic_depth.py
@@ -71,6 +65,41 @@ jobs:
           end
           RUBY
 
+      - name: Check Bash syntax in workflow run blocks
+        shell: bash
+        run: |
+          ruby <<'RUBY'
+          require "yaml"
+          require "tempfile"
+
+          failures = []
+          Dir[".github/workflows/*.{yml,yaml}"].each do |file|
+            data = YAML.load_file(file)
+            (data["jobs"] || {}).each do |job_name, job|
+              (job["steps"] || []).each_with_index do |step, index|
+                script = step["run"]
+                next unless script
+                shell = step["shell"].to_s
+                next unless shell.empty? || shell.include?("bash")
+
+                Tempfile.create(["workflow-run", ".sh"]) do |tmp|
+                  tmp.write(script)
+                  tmp.flush
+                  ok = system("bash", "-n", tmp.path, out: File::NULL, err: File::NULL)
+                  failures << "#{file}: job #{job_name}, step #{index + 1}" unless ok
+                end
+              end
+            end
+          end
+
+          unless failures.empty?
+            warn "Bash syntax failures:"
+            failures.each { |item| warn "- #{item}" }
+            exit 1
+          end
+          puts "All Bash/default-shell workflow run blocks parse successfully."
+          RUBY
+
       - name: Compile Python validators and course engine helpers
         run: >-
           python3 -m py_compile
@@ -78,6 +107,7 @@ jobs:
           scripts/audit_complete_course.py
           scripts/audit_microsoft_semantic_depth.py
           scripts/course_unit_state.py
+          scripts/test_course_runtime.py
           scripts/validate_unit_activity.py
           scripts/validate_module_01.py
           scripts/validate_course_module.py
@@ -113,7 +143,7 @@ jobs:
       - name: Confirm untouched hands-on checkpoints are rejected
         shell: bash
         run: |
-          for n in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16; do
+          for n in $(seq 1 16); do
             set +e
             python3 scripts/validate_unit_activity.py --module "$n" >/tmp/activity-result.txt 2>&1
             result=$?
