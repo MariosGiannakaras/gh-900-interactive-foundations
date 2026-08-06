@@ -4,14 +4,16 @@ Read `modules/14-pull-requests/README.md` first. Work on branch `lab/module-14`.
 
 ## Hands-on activities
 
-1. Make a small documentation change on `lab/module-14` and open a Pull Request to `main`.
-2. Write a clear PR title/body and link a related Issue.
-3. Inspect Files changed and add at least one review-style comment to your own diff if GitHub allows it; otherwise document the exact review action you would take on another contributor's PR.
-4. Compare approve, comment, and request-changes review outcomes.
-5. Inspect merge commit, squash merge, and rebase merge options and explain when each affects history differently.
-6. Inspect branch protection/ruleset settings that can require reviews/status checks before merge.
+1. Create a small Issue describing the documentation change you will make.
+2. Make that documentation change on `lab/module-14` and open a Pull Request to `main`.
+3. Write a clear PR title/body and reference the related Issue in the PR body (`Closes #...`, `Fixes #...`, or another explicit `#...` reference appropriate to your scenario).
+4. Inspect **Files changed** and add at least one review-style comment to your own diff if GitHub allows it; otherwise document the exact review action you would take on another contributor's PR.
+5. Compare approve, comment, and request-changes review outcomes.
+6. Inspect merge commit, squash merge, and rebase merge options and explain when each affects history differently.
+7. Inspect branch protection/ruleset settings that can require reviews/status checks before merge.
 
 ACTIVITY_STATUS: INCOMPLETE
+EVIDENCE_ISSUE: REPLACE_ME
 EVIDENCE_PR: REPLACE_ME
 EVIDENCE_REVIEW_NOTE: REPLACE_ME
 EVIDENCE_MERGE_STRATEGY_NOTE: REPLACE_ME
