@@ -166,6 +166,17 @@ Our exercise preserves that workflow without reproducing Microsoft's exact sampl
 
 When this unit begins, the course generates a small FastAPI application with one existing `/health` route, an acceptance-test suite, and a dependency file. The new endpoint tests intentionally fail until the learner implements the required change.
 
+Start from the temporary branch and run:
+
+```bash
+cd exercise
+python -m pip install -r requirements.txt
+python test_app.py
+uvicorn app:app --reload
+```
+
+Before the implementation, the `/health` test should pass while the `/analyze-text` acceptance tests demonstrate what still needs to be built. With the server running, FastAPI exposes interactive documentation at `/docs`.
+
 ### Required change
 
 Using Copilot where available, the learner must:
@@ -181,13 +192,27 @@ Using Copilot where available, the learner must:
 9. run the API and verify the new endpoint via `/docs` or an HTTP request;
 10. record the prompt iterations and at least one Copilot suggestion that was rejected or modified.
 
+### Prompt-review fallback when Copilot is unavailable
+
+Use the same engineering review loop rather than pretending Copilot was used. Consider this prompt:
+
+```text
+Add a FastAPI POST /analyze-text endpoint. Accept a Pydantic model with text: str,
+reject blank input, and return input length plus a deterministic checksum.
+```
+
+Compare two candidate approaches:
+
+- **Candidate A:** use Python's built-in `hash(text)` and return it directly, without trimming or validating the input.
+- **Candidate B:** trim only for the blank-input check, use `hashlib.sha256` for a stable digest, preserve a clearly defined length policy, and return an explicit client error for blank input.
+
+Candidate A should be rejected because Python's normal string hash is not a stable cross-process checksum and it ignores the validation requirement. Candidate B is closer to the requested behavior, but you still need to review imports, Pydantic/FastAPI types, status/error behavior, exact length semantics, and the tests before implementing it.
+
+If using this fallback, refine the prompt or candidate design at least once and explain in `/reflection ...` what you accepted, changed, or rejected.
+
 ### Why the reflection is required
 
 The repository can validate final code structure and tests but cannot reliably prove that a specific line came from Copilot. The learner therefore records the prompt/review process while also verifying the executable result in the development environment.
-
-### Fallback when Copilot is unavailable
-
-A learner without Copilot entitlement can use the clearly marked prompt-review alternatives presented directly in the course Issue. They still implement and test the final Python API themselves. The course marks this as a fallback rather than claiming Copilot was used.
 
 ---
 
