@@ -103,7 +103,7 @@ jobs:
 
           checkout_lab() {
             if ! git ls-remote --exit-code origin "refs/heads/$branch" >/dev/null 2>&1; then
-              gh issue comment "$issue_number" --body "The temporary learner branch \`$branch\` is missing. Comment \`/help\`; if the branch was deleted accidentally, restart the current exercise from the instructions shown there."
+              gh issue comment "$issue_number" --body "The temporary learner branch \`$branch\` is missing. The current exercise needs to be recreated before validation can continue."
               return 1
             fi
             git fetch origin "refs/heads/$branch:refs/remotes/origin/$branch"
@@ -260,8 +260,11 @@ jobs:
           fi
 
           next_state=$(jq -r .id <<<"$next_meta")
-          cleanup_activity
+
+          # Provision the next unit first. If GitHub is temporarily unavailable, the
+          # current validated activity remains recoverable until provisioning succeeds.
           prepare_activity "$next_state"
+          cleanup_activity
 
           new_body=$(printf '%s' "$body" | sed -E "s/<!-- gh900-state:[^>]+ -->/<!-- gh900-state:${next_state} -->/")
           gh issue edit "$issue_number" --body "$new_body"
