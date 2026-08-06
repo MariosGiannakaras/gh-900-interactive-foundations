@@ -71,9 +71,9 @@ def prepare(unit: str) -> None:
             "name: Module 04 CodeQL practice\n\n"
             "on:\n"
             "  push:\n"
-            "    branches: [main]\n"
+            "    branches: ['lab/**']\n"
             "  pull_request:\n"
-            "    branches: [main]\n"
+            "    branches: ['sandbox/**']\n"
             "  schedule:\n"
             "    - cron: '30 5 * * 1'\n\n"
             "permissions:\n"
@@ -286,6 +286,8 @@ def bootstrap() -> None:
         ".github/CONTRIBUTING.md",
         ".github/CODE_OF_CONDUCT.md",
         ".github/SECURITY.md",
+        ".github/ARCHITECTURE.md",
+        ".github/MAINTAINING.md",
         ".github/workflows/quality.yml",
     ]:
         path = ROOT / rel
