@@ -23,6 +23,14 @@ SOURCE_ONLY_FORBIDDEN = {
     "modules", "unit-details", "labs", "curriculum", "scripts", "docs",
     "course", "course-content", ".devcontainer",
 }
+STALE_LEARNER_RENDER_MARKERS = (
+    "labs/module-",
+    "`lab/module-",
+    "## Interactive lab",
+    "## Interactive course flow",
+    "## Interactive identity simulation",
+    "## Hands-on/simulation layer",
+)
 
 
 def error(errors: list[str], message: str) -> None:
@@ -153,6 +161,9 @@ def check_rendering(errors: list[str]) -> None:
             error(errors, f"{unit.id} render must show total-course progress")
         if f"Part **{unit.part} / 2**" not in rendered:
             error(errors, f"{unit.id} render must show Part {unit.part}")
+        for stale in STALE_LEARNER_RENDER_MARKERS:
+            if stale in rendered:
+                error(errors, f"{unit.id} render leaks legacy learner instruction/path: {stale}")
         if unit.mode in {"read", "summary"} and "/next" not in rendered:
             error(errors, f"{unit.id} must expose /next in the Issue")
         if unit.mode == "assessment":
@@ -195,7 +206,7 @@ def main() -> int:
     print("Curriculum: 2/2 parts, 16/16 modules, 106/106 units")
     print("Part split: 57 + 49")
     print("Modes: " + ", ".join(f"{k}={v}" for k, v in sorted(modes.items())))
-    print("All learner units render directly into the course Issue.")
+    print("All learner units render directly into the course Issue without legacy paths.")
     return 0
 
 
