@@ -1,0 +1,38 @@
+name: Course Quality
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Validate curriculum inventory
+        run: python3 scripts/check_curriculum_manifest.py
+
+      - name: Compile Python validators
+        run: python3 -m py_compile scripts/check_curriculum_manifest.py scripts/validate_module_01.py
+
+      - name: Confirm blank assessment is rejected
+        shell: bash
+        run: |
+          set +e
+          python3 scripts/validate_module_01.py
+          result=$?
+          set -e
+
+          if [[ "$result" -ne 2 ]]; then
+            echo "Expected untouched assessment to fail with format/incomplete exit code 2, got $result."
+            exit 1
+          fi
+
+          echo "Untouched assessment is correctly rejected until the learner selects one answer per question."
