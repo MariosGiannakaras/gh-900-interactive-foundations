@@ -14,11 +14,21 @@ EXPECTED_HASHES = {
     "Q4": "6eda2a848d37516a3c34dda208d38585b145f1a1ba6a6294c82e64313907e7bb",
     "Q5": "2b5d4b1bb78beea18d02e9fb6da5079b9368577589b40857fe37e49cb5210554",
     "Q6": "15362d98bee1b5ce53045f9d37dd1a45a8f08051e7854fedd65a91a533d6bc68",
+    "Q7": "d23f9052dc22f4d281fa3eb266a91aea0cdcf6daa06c6e29bd46fe816a9736a7",
+    "Q8": "b0d2f1585a10fb8225f257b7ba1e090fd276815728120ae05d5c04cc182ccb25",
+    "Q9": "c60b831f2441d3fb18d5483e5c13576d97d593aba691401e552fc7c85151fc94",
+    "Q10": "77a4018a9dbce5a7e92c5ca36b0a12f190abf2aa15813deacf47a9607b7be1cc",
+    "Q11": "754a5728fe202eb8a9f1598528322cb119891cf9ff1c95386d51c944fd052ee5",
+    "Q12": "e29dad8e4008e304881f092cf6ff7d16ff350e87bdfb79ac6f69e860304f1268",
 }
 
 
 def digest(question: str, answer: str) -> str:
     return hashlib.sha256(f"{question}:{answer}".encode("utf-8")).hexdigest()
+
+
+def question_sort_key(question: str) -> int:
+    return int(question.removeprefix("Q"))
 
 
 def main() -> int:
@@ -38,10 +48,13 @@ def main() -> int:
             continue
         parsed[question] = checked[0]
 
-    if malformed or set(parsed) != set(EXPECTED_HASHES):
-        problems = sorted(set(malformed) | (set(EXPECTED_HASHES) - set(parsed)))
-        print("Assessment format is incomplete. Check exactly one option for each question.")
-        print("Needs attention: " + ", ".join(problems))
+    expected = set(EXPECTED_HASHES)
+    actual = set(parsed)
+    if malformed or actual != expected:
+        problems = set(malformed) | (expected - actual) | (actual - expected)
+        ordered = sorted(problems, key=question_sort_key)
+        print("Assessment format is incomplete or changed. Check exactly one option for every expected question.")
+        print("Needs attention: " + ", ".join(ordered))
         return 2
 
     wrong = [
@@ -49,11 +62,12 @@ def main() -> int:
         for question, answer in parsed.items()
         if digest(question, answer) != EXPECTED_HASHES[question]
     ]
+    wrong.sort(key=question_sort_key)
 
     score = len(EXPECTED_HASHES) - len(wrong)
     print(f"Score: {score}/{len(EXPECTED_HASHES)}")
     if wrong:
-        print("Review these questions: " + ", ".join(sorted(wrong)))
+        print("Review these questions: " + ", ".join(wrong))
         return 1
 
     print("Module 1 assessment passed.")
