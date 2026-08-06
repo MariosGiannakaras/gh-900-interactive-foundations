@@ -5,9 +5,9 @@ Read `modules/15-search-organize-history/README.md` first. Work on branch `lab/m
 ## Hands-on activities
 
 1. Use repository search/filtering to find an Issue, Pull Request, commit, and file by meaningful terms.
-2. Use commit history and `git log` to identify when a chosen line/file changed.
+2. Use commit history and `git log` to identify when a chosen line/file changed. Record a real commit SHA that exists in this repository.
 3. Use GitHub blame on a text file and follow a commit from the blame view.
-4. Create an annotated or lightweight practice tag locally (do not create a release unless you want to) and explain tags versus branches.
+4. Create an annotated or lightweight practice tag locally, then push that tag to this learner repository so the validator can verify it. Do not create a release unless you want to.
 5. Link related work using Issue/PR references or commit links so history is easier to navigate.
 6. Practice qualifiers/filters for Issues and Pull Requests such as state, author, label, assignee, review status, or date as applicable.
 
@@ -15,7 +15,7 @@ ACTIVITY_STATUS: INCOMPLETE
 EVIDENCE_SEARCH_NOTE: REPLACE_ME
 EVIDENCE_HISTORY_COMMIT: REPLACE_ME
 EVIDENCE_BLAME_NOTE: REPLACE_ME
-EVIDENCE_TAG_NOTE: REPLACE_ME
+EVIDENCE_TAG_NAME: REPLACE_ME
 
 ## Knowledge check
 
