@@ -61,24 +61,18 @@ jobs:
             readme=$(jq -r --arg m "$key" '.[$m].readme' curriculum/course-catalog.json)
             branch=$(jq -r --arg m "$key" '.[$m].branch' curriculum/course-catalog.json)
             submission="labs/module-${key}/submission.md"
+
             if [[ "$key" == "01" ]]; then
-              cat <<EOF
-## Start Module 1 — ${title}
-
-Open the dedicated Module 1 course Issue and follow its step-by-step instructions. If it does not exist yet, run **GH-900 Module 1 Interactive Course** from the Actions tab once.
-
-Theory: [${readme}](../blob/main/${readme})
-EOF
+              printf '## Start Module 1 — %s\n\n' "$title"
+              printf '%s\n\n' 'Open the dedicated Module 1 course Issue and follow its step-by-step instructions. If it does not exist yet, run **GH-900 Module 1 Interactive Course** from the Actions tab once.'
+              printf 'Theory: [%s](../blob/main/%s)\n' "$readme" "$readme"
             else
-              cat <<EOF
-## Next: Module ${module} — ${title}
-
-1. Read [${readme}](../blob/main/${readme}).
-2. Create branch \`${branch}\` from \`main\`.
-3. Complete the hands-on activities in [${submission}](../blob/main/${submission}).
-4. Replace all evidence placeholders, set \`ACTIVITY_STATUS: COMPLETE\`, answer the blind knowledge check, commit, and push.
-5. This workflow will validate the branch and post the next module automatically.
-EOF
+              printf '## Next: Module %d — %s\n\n' "$module" "$title"
+              printf '1. Read [%s](../blob/main/%s).\n' "$readme" "$readme"
+              printf '2. Create branch `%s` from `main`.\n' "$branch"
+              printf '3. Complete the hands-on activities in [%s](../blob/main/%s).\n' "$submission" "$submission"
+              printf '%s\n' '4. Replace all evidence placeholders, set `ACTIVITY_STATUS: COMPLETE`, answer the blind knowledge check, commit, and push.'
+              printf '%s\n' '5. This workflow will validate the branch and post the next module automatically.'
             fi
           }
 
