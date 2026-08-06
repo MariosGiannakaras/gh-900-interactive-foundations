@@ -1,30 +1,42 @@
+"""Acceptance tests for the Module 16 FastAPI exercise.
+
+Install the supplied requirements before running this file:
+    python -m pip install -r requirements.txt
+    python test_app.py
+"""
+
 import unittest
 
-from app import summarize_scores
+from fastapi.testclient import TestClient
+
+from app import app
 
 
-class SummarizeScoresTests(unittest.TestCase):
-    def test_empty(self):
-        self.assertEqual(
-            summarize_scores([]),
-            {"count": 0, "average": None, "max": None},
-        )
+client = TestClient(app)
 
-    def test_values(self):
-        self.assertEqual(
-            summarize_scores([10, 20, 25]),
-            {"count": 3, "average": 18.33, "max": 25},
-        )
 
-    def test_mixed_numeric_types(self):
-        self.assertEqual(
-            summarize_scores([1, 2.5, 3]),
-            {"count": 3, "average": 2.17, "max": 3},
-        )
+class ApiTests(unittest.TestCase):
+    def test_health_baseline(self):
+        response = client.get("/health")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"status": "ok"})
 
-    def test_rejects_non_numeric(self):
-        with self.assertRaises(TypeError):
-            summarize_scores([1, "2", 3])
+    def test_analyze_text_returns_length_and_checksum(self):
+        response = client.post("/analyze-text", json={"text": "GitHub Foundations"})
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertEqual(payload["length"], len("GitHub Foundations"))
+        self.assertIsInstance(payload["checksum"], str)
+        self.assertGreaterEqual(len(payload["checksum"]), 16)
+
+    def test_analyze_text_is_deterministic(self):
+        first = client.post("/analyze-text", json={"text": "same input"}).json()
+        second = client.post("/analyze-text", json={"text": "same input"}).json()
+        self.assertEqual(first["checksum"], second["checksum"])
+
+    def test_blank_text_is_rejected(self):
+        response = client.post("/analyze-text", json={"text": "   "})
+        self.assertGreaterEqual(response.status_code, 400)
 
 
 if __name__ == "__main__":
