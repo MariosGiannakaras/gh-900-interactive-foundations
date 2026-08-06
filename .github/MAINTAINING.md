@@ -64,6 +64,7 @@ Recommended source-repository settings:
 - Course Quality required before merge;
 - force pushes/deletion blocked;
 - Actions default token read-only;
+- **Allow GitHub Actions to create and approve pull requests** disabled — learner PR creation is intentionally user-owned;
 - fork workflows require approval for external contributors;
 - private vulnerability reporting enabled;
 - Dependabot/security scanning features enabled where available.
