@@ -21,10 +21,11 @@ concurrency:
 
 jobs:
   progress:
-    # Never run learner state in the upstream course repository. For pull requests,
-    # also reject drive-by PRs before checkout so untrusted fork code is not executed.
+    # Never run learner state in a repository that is itself marked as a template.
+    # For pull requests, also reject drive-by PRs before checkout so untrusted fork
+    # code is not executed.
     if: >-
-      github.repository != 'MariosGiannakaras/gh-900-interactive-foundations' &&
+      !github.event.repository.is_template &&
       (github.event_name != 'pull_request' ||
        github.event.pull_request.author_association == 'OWNER' ||
        github.event.pull_request.author_association == 'MEMBER' ||
