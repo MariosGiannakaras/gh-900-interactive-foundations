@@ -6,6 +6,8 @@ on:
   push:
     branches:
       - "lab/**"
+  pull_request:
+    types: [opened, edited, synchronize, reopened, ready_for_review]
   workflow_dispatch:
 
 permissions:
@@ -19,7 +21,14 @@ concurrency:
 
 jobs:
   progress:
-    if: github.repository != 'MariosGiannakaras/gh-900-interactive-foundations'
+    # Never run learner state in the upstream course repository. For pull requests,
+    # also reject drive-by PRs before checkout so untrusted fork code is not executed.
+    if: >-
+      github.repository != 'MariosGiannakaras/gh-900-interactive-foundations' &&
+      (github.event_name != 'pull_request' ||
+       github.event.pull_request.author_association == 'OWNER' ||
+       github.event.pull_request.author_association == 'MEMBER' ||
+       github.event.pull_request.author_association == 'COLLABORATOR')
     runs-on: ubuntu-latest
     steps:
       - name: Check out the event revision
@@ -37,6 +46,7 @@ jobs:
           COMMENT_ISSUE: ${{ github.event.issue.number }}
           COMMENT_AUTHOR_TYPE: ${{ github.event.comment.user.type }}
           COMMENT_ASSOCIATION: ${{ github.event.comment.author_association }}
+          PR_HEAD_REF: ${{ github.event.pull_request.head.ref }}
         run: |
           set -euo pipefail
 
@@ -81,42 +91,38 @@ jobs:
           branch=$(jq -r .branch <<<"$meta")
           advance=false
 
-          if [[ "$EVENT_NAME" == "issue_comment" ]]; then
-            [[ "${COMMENT_ISSUE:-}" == "$issue_number" ]] || exit 0
-            command=$(printf '%s' "${COMMENT_BODY:-}" | tr -d '\r' | xargs)
-            if [[ "$command" == "/help" ]]; then
-              python3 scripts/course_unit_state.py --unit "$state" --render > /tmp/current.md
-              gh issue comment "$issue_number" --body-file /tmp/current.md
-              exit 0
-            fi
-            if [[ "$mode" == "read" || "$mode" == "summary" ]]; then
-              if [[ "$command" == "/next" ]]; then
-                advance=true
-              else
-                gh issue comment "$issue_number" --body $'This unit is a reading/understanding step. Comment exactly `/next` when you are ready, or `/help` to show the unit again.'
-                exit 0
-              fi
-            else
-              gh issue comment "$issue_number" --body $'This checkpoint advances from repository state, not a comment. Complete the latest hands-on/assessment instruction and push the required branch.'
-              exit 0
-            fi
-          elif [[ "$EVENT_NAME" == "push" ]]; then
-            [[ "$GITHUB_REF_NAME" == "$branch" ]] || exit 0
+          post_activity_failure() {
+            local output="$1"
+            {
+              printf '### Hands-on checkpoint needs another attempt\n\n```text\n%s\n```\n\n' "$output"
+              printf '%s\n' 'Fix the listed items. A relevant push/PR update will check the state again automatically; `/check` is also available as recovery.'
+            } > /tmp/fail.md
+            gh issue comment "$issue_number" --body-file /tmp/fail.md
+          }
+
+          post_assessment_failure() {
+            local output="$1"
+            {
+              printf '### Blind assessment needs another attempt\n\n```text\n%s\n```\n\n' "$output"
+              printf '%s\n' 'Review only the indicated questions, change your selections, and push again. Correct answers remain hidden.'
+            } > /tmp/fail.md
+            gh issue comment "$issue_number" --body-file /tmp/fail.md
+          }
+
+          validate_current_checkpoint() {
             if [[ "$mode" == "activity" ]]; then
               set +e
               output=$(python3 scripts/validate_unit_activity.py --module "$module" 2>&1)
               result=$?
               set -e
               if (( result != 0 )); then
-                {
-                  printf '### Hands-on checkpoint needs another attempt\n\n```text\n%s\n```\n\n' "$output"
-                  printf '%s\n' 'Fix the listed items and push again. The course remains on the current official unit.'
-                } > /tmp/fail.md
-                gh issue comment "$issue_number" --body-file /tmp/fail.md
-                exit "$result"
+                post_activity_failure "$output"
+                return "$result"
               fi
-              advance=true
-            elif [[ "$mode" == "assessment" ]]; then
+              return 0
+            fi
+
+            if [[ "$mode" == "assessment" ]]; then
               if (( module == 1 )); then
                 validator=(python3 scripts/validate_module_01.py)
               else
@@ -127,17 +133,70 @@ jobs:
               result=$?
               set -e
               if (( result != 0 )); then
-                {
-                  printf '### Blind assessment needs another attempt\n\n```text\n%s\n```\n\n' "$output"
-                  printf '%s\n' 'Review only the indicated questions, change your selections, and push again. Correct answers remain hidden.'
-                } > /tmp/fail.md
-                gh issue comment "$issue_number" --body-file /tmp/fail.md
-                exit "$result"
+                post_assessment_failure "$output"
+                return "$result"
               fi
-              advance=true
-            else
+              return 0
+            fi
+
+            return 3
+          }
+
+          checkout_lab_branch_for_recheck() {
+            if ! git ls-remote --exit-code origin "refs/heads/$branch" >/dev/null 2>&1; then
+              gh issue comment "$issue_number" --body "The current checkpoint expects branch \`$branch\`, but that branch does not exist yet. Create it from \`main\`, complete the activity, and push."
+              return 1
+            fi
+            git fetch origin "$branch"
+            git checkout -B "$branch" FETCH_HEAD
+          }
+
+          if [[ "$EVENT_NAME" == "issue_comment" ]]; then
+            [[ "${COMMENT_ISSUE:-}" == "$issue_number" ]] || exit 0
+            command=$(printf '%s' "${COMMENT_BODY:-}" | tr -d '\r' | xargs)
+
+            if [[ "$command" == "/help" ]]; then
+              python3 scripts/course_unit_state.py --unit "$state" --render > /tmp/current.md
+              gh issue comment "$issue_number" --body-file /tmp/current.md
               exit 0
             fi
+
+            if [[ "$mode" == "read" || "$mode" == "summary" ]]; then
+              if [[ "$command" == "/next" ]]; then
+                advance=true
+              else
+                gh issue comment "$issue_number" --body $'This unit is a reading/understanding step. Comment exactly `/next` when you are ready, or `/help` to show the unit again.'
+                exit 0
+              fi
+            elif [[ "$command" == "/check" ]]; then
+              checkout_lab_branch_for_recheck || exit 0
+              if validate_current_checkpoint; then
+                advance=true
+              else
+                exit 0
+              fi
+            else
+              gh issue comment "$issue_number" --body $'This checkpoint advances from repository state. Complete the latest hands-on/assessment instruction; relevant pushes and Pull Request updates are checked automatically. Use `/check` only as a recovery recheck.'
+              exit 0
+            fi
+
+          elif [[ "$EVENT_NAME" == "push" ]]; then
+            [[ "$GITHUB_REF_NAME" == "$branch" ]] || exit 0
+            if validate_current_checkpoint; then
+              advance=true
+            else
+              exit 1
+            fi
+
+          elif [[ "$EVENT_NAME" == "pull_request" ]]; then
+            [[ "${PR_HEAD_REF:-}" == "$branch" ]] || exit 0
+            [[ "$mode" == "activity" ]] || exit 0
+            if validate_current_checkpoint; then
+              advance=true
+            else
+              exit 1
+            fi
+
           elif [[ "$EVENT_NAME" == "workflow_dispatch" ]]; then
             python3 scripts/course_unit_state.py --unit "$state" --render > /tmp/current.md
             gh issue comment "$issue_number" --body-file /tmp/current.md
