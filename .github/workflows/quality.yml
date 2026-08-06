@@ -68,6 +68,9 @@ jobs:
       - name: Audit complete 16-module interactive course
         run: python3 scripts/audit_complete_course.py
 
+      - name: Verify learner runtime package sync
+        run: python3 scripts/sync_learner_runtime.py
+
       - name: Validate clean learner runtime v2
         run: python3 scripts/test_learner_runtime_v2.py
 
@@ -136,6 +139,7 @@ jobs:
           scripts/course_unit_state.py
           scripts/test_course_runtime.py
           scripts/test_learner_runtime_v2.py
+          scripts/sync_learner_runtime.py
           scripts/validate_unit_activity.py
           scripts/validate_module_01.py
           scripts/validate_course_module.py
