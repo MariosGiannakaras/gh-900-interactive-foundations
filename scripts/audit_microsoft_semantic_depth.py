@@ -3,7 +3,7 @@
 
 This is deliberately not a copyright/similarity checker. It verifies that every unit
 can be resolved at the locked upstream commit and that the local, independently worded
-coverage is substantial enough not to be a title/objective-only placeholder.
+coverage presented to the learner is substantial enough not to be a title/objective-only placeholder.
 """
 from __future__ import annotations
 
@@ -14,6 +14,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 LOCK = ROOT / "curriculum" / "microsoft-source-lock.json"
 UPSTREAM = ROOT / "_microsoft_learn"
+DETAILS = ROOT / "unit-details"
 
 
 def normalized_len(text: str) -> int:
@@ -45,6 +46,17 @@ def resolve_unit_source(module_root: Path, uid: str) -> tuple[Path, str]:
 def extract_local_unit(readme: str, number: int) -> str:
     pattern = rf"(?ms)^## Unit {number}\b[^\n]*\n(.*?)(?=^---\s*$|^## Unit \d+\b|^## Official references\b|\Z)"
     match = re.search(pattern, readme)
+    return match.group(1).strip() if match else ""
+
+
+def extract_detail(key: str, number: int) -> str:
+    path = DETAILS / f"m{key}.md"
+    if not path.exists():
+        return ""
+    unit_id = f"m{key}-u{number:02d}"
+    text = path.read_text(encoding="utf-8")
+    pattern = rf"(?ms)^## {re.escape(unit_id)}\s*$\n(.*?)(?=^## m\d{{2}}-u\d{{2}}\s*$|\Z)"
+    match = re.search(pattern, text)
     return match.group(1).strip() if match else ""
 
 
@@ -99,8 +111,9 @@ def main() -> int:
                 errors.append(f"M{key} U{number}: local Unit heading/content missing for {uid}")
                 continue
 
+            detail = extract_detail(key, number)
             source_n = normalized_len(source_text)
-            local_n = normalized_len(local_unit)
+            local_n = normalized_len(local_unit) + normalized_len(detail)
             lower_uid = uid.lower()
 
             if "knowledge-check" in lower_uid or "assessment" in lower_uid:
