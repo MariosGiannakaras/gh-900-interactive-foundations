@@ -64,7 +64,6 @@ jobs:
           # earlier attempt but source-only template files remain, finish bootstrap.
           needs_bootstrap=false
           for path in \
-            LICENSE \
             .github/CONTRIBUTING.md \
             .github/CODE_OF_CONDUCT.md \
             .github/SECURITY.md \
