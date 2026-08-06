@@ -3,13 +3,13 @@ from __future__ import annotations
 
 import json
 import re
-import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 MANIFEST = ROOT / "curriculum" / "official-curriculum.yml"
 CATALOG = ROOT / "curriculum" / "course-catalog.json"
 HASHES = ROOT / "curriculum" / "assessment-hashes.json"
+SOURCE_LOCK = ROOT / "curriculum" / "microsoft-source-lock.json"
 
 
 def fail(messages: list[str]) -> int:
@@ -23,6 +23,7 @@ def main() -> int:
     manifest = MANIFEST.read_text(encoding="utf-8")
     catalog = json.loads(CATALOG.read_text(encoding="utf-8"))
     hashes = json.loads(HASHES.read_text(encoding="utf-8"))
+    source_lock = json.loads(SOURCE_LOCK.read_text(encoding="utf-8"))
 
     module_counts = {
         int(m): int(c)
@@ -38,6 +39,10 @@ def main() -> int:
         errors.append(f"official curriculum must enumerate 106 unit IDs; found {len(unit_ids)}")
     if set(catalog) != {f"{n:02d}" for n in range(1, 17)}:
         errors.append("course catalog must contain Modules 01-16 exactly")
+    if set(source_lock.get("modules", {})) != {f"{n:02d}" for n in range(1, 17)}:
+        errors.append("Microsoft source lock must contain Modules 01-16 exactly")
+    if sum(int(v["units"]) for v in source_lock.get("modules", {}).values()) != 106:
+        errors.append("Microsoft source lock must account for exactly 106 official units")
 
     for n in range(1, 17):
         key = f"{n:02d}"
@@ -56,13 +61,9 @@ def main() -> int:
         if "Official Microsoft Learn module:" not in text:
             errors.append(f"Module {key} README lacks official-source traceability")
 
+        required = [ROOT / f"labs/module-{key}/submission.md"]
         if n == 1:
-            required = [
-                ROOT / "labs/module-01/assessment.md",
-                ROOT / "scripts/validate_module_01.py",
-            ]
-        else:
-            required = [ROOT / f"labs/module-{key}/submission.md"]
+            required.append(ROOT / "labs/module-01/assessment.md")
         for path in required:
             if not path.exists():
                 errors.append(f"Module {key} interactive artifact missing: {path.relative_to(ROOT)}")
@@ -74,10 +75,16 @@ def main() -> int:
             errors.append(f"Module {key} assessment hash map must contain Q1-Q6")
 
     runtime = [
-        ".github/workflows/module-01-interactive.yml",
-        ".github/workflows/course-progress.yml",
+        ".github/workflows/00-start-course.yml",
+        ".github/workflows/01-course-engine.yml",
+        "scripts/course_unit_state.py",
+        "scripts/test_course_runtime.py",
+        "scripts/validate_unit_activity.py",
+        "scripts/validate_module_01.py",
         "scripts/validate_course_module.py",
+        "scripts/audit_microsoft_semantic_depth.py",
         "curriculum/course-catalog.json",
+        "curriculum/microsoft-source-lock.json",
     ]
     for rel in runtime:
         if not (ROOT / rel).exists():
@@ -91,7 +98,8 @@ def main() -> int:
     print("Modules: 16/16")
     print("Official units mapped: 106/106")
     print("Interactive module packages: 16/16")
-    print("Autonomous progression runtime: present")
+    print("Pinned Microsoft source lock: present")
+    print("Automatic Step 0 + unit-by-unit progression runtime: present")
     return 0
 
 

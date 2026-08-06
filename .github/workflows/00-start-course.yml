@@ -1,0 +1,56 @@
+name: Step 0 - Start GH-900 Course
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  start:
+    # The upstream/source repository must never create learner progress. A repository
+    # created from the template automatically runs this job on its initial main push.
+    if: github.repository != 'MariosGiannakaras/gh-900-interactive-foundations'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out learner repository
+        uses: actions/checkout@v4
+
+      - name: Create the course Issue and post Unit 1
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          COURSE_TITLE: "GH-900 Interactive Foundations — Course"
+        run: |
+          set -euo pipefail
+          existing=$(gh issue list --state all --limit 100 --json number,title \
+            | jq -r --arg title "$COURSE_TITLE" '.[] | select(.title == $title) | .number' \
+            | head -n 1)
+          if [[ -n "$existing" ]]; then
+            echo "Course Issue already exists: #$existing"
+            exit 0
+          fi
+
+          cat > /tmp/body.md <<'EOF'
+          <!-- gh900-state:m01-u01 -->
+          # GH-900 Interactive Foundations
+
+          This Issue is your live course interface. It moves through the official Microsoft Learn curriculum **unit by unit** and keeps your progress inside your own repository.
+
+          - Do not edit the hidden `gh900-state` marker.
+          - Follow only the latest course instruction.
+          - Theory units use `/next` after reading.
+          - Hands-on and assessment units advance automatically after the required GitHub change is pushed and validated.
+          - Correct assessment answers are never shown before you submit.
+
+          **Source baseline:** MicrosoftDocs/learn `66ab07a355b38fb0f5a4cef8240eb2f765c839c8` (2026-08-06).
+          EOF
+
+          url=$(gh issue create --title "$COURSE_TITLE" --body-file /tmp/body.md)
+          issue_number="${url##*/}"
+          python3 scripts/course_unit_state.py --first --render > /tmp/step.md
+          gh issue comment "$issue_number" --body-file /tmp/step.md
+          echo "Started course in Issue #$issue_number"

@@ -4,11 +4,12 @@ Read `modules/06-github-codespaces/README.md` first. Work on branch `lab/module-
 
 ## Hands-on activities
 
-1. Create/open a Codespace for your fork and identify the repository, branch, terminal, forwarded ports, and source-control controls.
+1. Create/open a Codespace for your copied course repository and identify the repository, branch, terminal, forwarded ports, and source-control controls.
 2. Stop and restart the Codespace so you understand the lifecycle and the difference between stop and delete.
-3. Review or create a `.devcontainer/devcontainer.json` configuration and identify one setting that customizes the environment.
-4. Open the same repository with `github.dev` and compare what is available there versus a full Codespace.
-5. Record how secrets, dotfiles/settings sync, machine configuration, and prebuilds can affect Codespaces.
+3. Open `.devcontainer/devcontainer.json`. Replace the `TODO customize` name and make at least one meaningful, valid dev-container customization (for example an editor setting or supported feature). Keep valid JSON.
+4. Rebuild or inspect how a rebuild would apply the dev-container configuration, and understand which workspace data is preserved.
+5. Open the same repository with `github.dev` and compare what is available there versus a full Codespace.
+6. Record how secrets, dotfiles/Settings Sync, machine configuration, timeouts/retention, and prebuilds can affect Codespaces.
 
 ACTIVITY_STATUS: INCOMPLETE
 EVIDENCE_CODESPACE_NOTE: REPLACE_ME

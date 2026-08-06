@@ -4,17 +4,19 @@ Read `modules/04-code-scanning/README.md` first. Work on branch `lab/module-04`.
 
 ## Hands-on activities
 
-1. Inspect the repository Security tab and the code-scanning area available to your fork.
+1. Inspect the repository Security tab and the code-scanning area available to your copied course repository.
 2. Review how default setup differs from advanced workflow configuration.
-3. Review a CodeQL workflow and identify `init`, build/autobuild, and `analyze` stages.
+3. Review a CodeQL workflow and identify initialization, build/autobuild, and analysis stages.
 4. Review how third-party SARIF-producing tools can upload results to GitHub code scanning.
-5. If code scanning is available in your fork, enable/configure it and inspect the result. If unavailable, perform the documented simulation in the module and record why.
+5. Complete every `TODO` in `labs/module-04/code-scanning-simulation.yml`. The file is deliberately outside `.github/workflows`, so the configuration exercise cannot execute arbitrary workflow code.
+6. If code scanning is available in your repository, enable/configure it and inspect a result. If it is unavailable, the completed simulation artifact is the durable hands-on equivalent; record why the live setup was unavailable.
 
 ACTIVITY_STATUS: INCOMPLETE
 EVIDENCE_SECURITY_TAB: REPLACE_ME
 EVIDENCE_SETUP_MODE: REPLACE_ME
 EVIDENCE_CODEQL_STAGE_NOTE: REPLACE_ME
 EVIDENCE_SARIF_NOTE: REPLACE_ME
+EVIDENCE_SIMULATION_FILE: REPLACE_ME
 
 ## Knowledge check
 

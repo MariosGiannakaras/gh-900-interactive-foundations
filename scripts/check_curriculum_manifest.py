@@ -8,6 +8,7 @@ from pathlib import Path
 MANIFEST = Path("curriculum/official-curriculum.yml")
 EXPECTED_MODULES = 16
 EXPECTED_UNITS = 106
+EXPECTED_IMPLEMENTED_ENTRIES = EXPECTED_MODULES + EXPECTED_UNITS
 
 
 def main() -> int:
@@ -19,6 +20,7 @@ def main() -> int:
         int(value)
         for value in re.findall(r"^\s+unit_count:\s*(\d+)\s*$", text, flags=re.MULTILINE)
     ]
+    implemented_entries = len(re.findall(r"\bimplementation:\s*implemented\b", text))
 
     errors: list[str] = []
 
@@ -46,6 +48,14 @@ def main() -> int:
     if "modules: 16" not in text or "units: 106" not in text:
         errors.append("coverage_target must explicitly remain 16 modules / 106 units")
 
+    if re.search(r"\bimplementation:\s*(planned|in_progress)\b", text):
+        errors.append("no module or unit may remain planned/in_progress in the completed curriculum")
+    if implemented_entries != EXPECTED_IMPLEMENTED_ENTRIES:
+        errors.append(
+            f"expected {EXPECTED_IMPLEMENTED_ENTRIES} implemented module/unit entries, "
+            f"found {implemented_entries}"
+        )
+
     if errors:
         print("Curriculum manifest validation failed:")
         for error in errors:
@@ -54,7 +64,7 @@ def main() -> int:
 
     print(
         f"Curriculum manifest validated: {len(modules)} modules / "
-        f"{len(units)} units."
+        f"{len(units)} units / {implemented_entries} implemented entries."
     )
     return 0
 

@@ -14,14 +14,45 @@ jobs:
   validate:
     runs-on: ubuntu-latest
     steps:
-      - name: Check out repository
+      - name: Check out course repository
         uses: actions/checkout@v4
+
+      - name: Check out pinned Microsoft Learn source snapshot
+        uses: actions/checkout@v4
+        with:
+          repository: MicrosoftDocs/learn
+          ref: 66ab07a355b38fb0f5a4cef8240eb2f765c839c8
+          path: _microsoft_learn
+          fetch-depth: 1
+          sparse-checkout: |
+            learn-pr/student-evangelism/intro-to-git
+            learn-pr/github/introduction-to-github
+            learn-pr/github/github-introduction-products
+            learn-pr/github/configure-code-scanning
+            learn-pr/github/introduction-to-github-copilot
+            learn-pr/github/code-with-github-codespaces
+            learn-pr/github/manage-work-github-projects
+            learn-pr/github/communicate-using-markdown
+            learn-pr/github/contribute-open-source
+            learn-pr/github/manage-innersource-program-github
+            learn-pr/github/maintain-secure-repository-github
+            learn-pr/github/github-introduction-administration
+            learn-pr/github/authenticate-authorize-user-identities-github
+            learn-pr/github/manage-changes-pull-requests-github
+            learn-pr/github/search-organize-repository-history-github
+            learn-pr/github/introduction-copilot-python
 
       - name: Validate official curriculum inventory
         run: python3 scripts/check_curriculum_manifest.py
 
       - name: Audit complete 16-module interactive course
         run: python3 scripts/audit_complete_course.py
+
+      - name: Validate full 106-unit runtime chain
+        run: python3 scripts/test_course_runtime.py
+
+      - name: Audit semantic depth against pinned Microsoft source
+        run: python3 scripts/audit_microsoft_semantic_depth.py
 
       - name: Parse workflow YAML files
         shell: bash
@@ -34,11 +65,50 @@ jobs:
           end
           RUBY
 
-      - name: Compile Python validators
+      - name: Check Bash syntax in workflow run blocks
+        shell: bash
+        run: |
+          ruby <<'RUBY'
+          require "yaml"
+          require "tempfile"
+
+          failures = []
+          Dir[".github/workflows/*.{yml,yaml}"].each do |file|
+            data = YAML.load_file(file)
+            (data["jobs"] || {}).each do |job_name, job|
+              (job["steps"] || []).each_with_index do |step, index|
+                script = step["run"]
+                next unless script
+                shell = step["shell"].to_s
+                next unless shell.empty? || shell.include?("bash")
+
+                Tempfile.create(["workflow-run", ".sh"]) do |tmp|
+                  tmp.write(script)
+                  tmp.flush
+                  ok = system("bash", "-n", tmp.path, out: File::NULL, err: File::NULL)
+                  failures << "#{file}: job #{job_name}, step #{index + 1}" unless ok
+                end
+              end
+            end
+          end
+
+          unless failures.empty?
+            warn "Bash syntax failures:"
+            failures.each { |item| warn "- #{item}" }
+            exit 1
+          end
+          puts "All Bash/default-shell workflow run blocks parse successfully."
+          RUBY
+
+      - name: Compile Python validators and course engine helpers
         run: >-
           python3 -m py_compile
           scripts/check_curriculum_manifest.py
           scripts/audit_complete_course.py
+          scripts/audit_microsoft_semantic_depth.py
+          scripts/course_unit_state.py
+          scripts/test_course_runtime.py
+          scripts/validate_unit_activity.py
           scripts/validate_module_01.py
           scripts/validate_course_module.py
 
@@ -63,9 +133,25 @@ jobs:
             result=$?
             set -e
             if [[ "$result" -eq 0 ]]; then
-              echo "Untouched Module $n unexpectedly passed."
+              echo "Untouched Module $n unexpectedly passed assessment validation."
               cat /tmp/module-result.txt
               exit 1
             fi
           done
-          echo "All untouched learner submissions are correctly rejected."
+          echo "All untouched assessments are correctly rejected."
+
+      - name: Confirm untouched hands-on checkpoints are rejected
+        shell: bash
+        run: |
+          for n in $(seq 1 16); do
+            set +e
+            python3 scripts/validate_unit_activity.py --module "$n" >/tmp/activity-result.txt 2>&1
+            result=$?
+            set -e
+            if [[ "$result" -eq 0 ]]; then
+              echo "Untouched Module $n unexpectedly passed hands-on validation."
+              cat /tmp/activity-result.txt
+              exit 1
+            fi
+          done
+          echo "All untouched hands-on checkpoints are correctly rejected."

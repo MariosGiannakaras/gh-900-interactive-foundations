@@ -17,7 +17,7 @@ learning_paths:
         title: Introduction to Git
         url: https://learn.microsoft.com/en-us/training/modules/intro-to-git/
         unit_count: 6
-        implementation: in_progress
+        implementation: implemented
         units:
           - { id: m01-u01, title: Introduction, implementation: implemented }
           - { id: m01-u02, title: What is version control?, implementation: implemented }
@@ -29,95 +29,95 @@ learning_paths:
         title: Introduction to GitHub
         url: https://learn.microsoft.com/en-us/training/modules/introduction-to-github/
         unit_count: 8
-        implementation: planned
+        implementation: implemented
         units:
-          - { id: m02-u01, title: Introduction, implementation: planned }
-          - { id: m02-u02, title: What is GitHub?, implementation: planned }
-          - { id: m02-u03, title: Components of the GitHub flow, implementation: planned }
-          - { id: m02-u04, title: GitHub is a collaborative platform, implementation: planned }
-          - { id: m02-u05, title: GitHub platform management, implementation: planned }
-          - { id: m02-u06, title: Exercise - A guided tour of GitHub, implementation: planned }
-          - { id: m02-u07, title: Module assessment, implementation: planned }
-          - { id: m02-u08, title: Summary, implementation: planned }
+          - { id: m02-u01, title: Introduction, implementation: implemented }
+          - { id: m02-u02, title: What is GitHub?, implementation: implemented }
+          - { id: m02-u03, title: Components of the GitHub flow, implementation: implemented }
+          - { id: m02-u04, title: GitHub is a collaborative platform, implementation: implemented }
+          - { id: m02-u05, title: GitHub platform management, implementation: implemented }
+          - { id: m02-u06, title: Exercise - A guided tour of GitHub, implementation: implemented }
+          - { id: m02-u07, title: Module assessment, implementation: implemented }
+          - { id: m02-u08, title: Summary, implementation: implemented }
       - id: m03
         title: Introduction to GitHub's products
         url: https://learn.microsoft.com/en-us/training/modules/github-introduction-products/
         unit_count: 9
-        implementation: planned
+        implementation: implemented
         units:
-          - { id: m03-u01, title: Introduction, implementation: planned }
-          - { id: m03-u02, title: GitHub accounts and plans, implementation: planned }
-          - { id: m03-u03, title: GitHub Mobile and GitHub Desktop, implementation: planned }
-          - { id: m03-u04, title: GitHub billing, implementation: planned }
-          - { id: m03-u05, title: License Usage Stats, implementation: planned }
-          - { id: m03-u06, title: License Usage Stats in Machine and Peripheral Devices, implementation: planned }
-          - { id: m03-u07, title: Metered Usage Reports, implementation: planned }
-          - { id: m03-u08, title: Module assessment, implementation: planned }
-          - { id: m03-u09, title: Summary, implementation: planned }
+          - { id: m03-u01, title: Introduction, implementation: implemented }
+          - { id: m03-u02, title: GitHub accounts and plans, implementation: implemented }
+          - { id: m03-u03, title: GitHub Mobile and GitHub Desktop, implementation: implemented }
+          - { id: m03-u04, title: GitHub billing, implementation: implemented }
+          - { id: m03-u05, title: License Usage Stats, implementation: implemented }
+          - { id: m03-u06, title: License Usage Stats in Machine and Peripheral Devices, implementation: implemented }
+          - { id: m03-u07, title: Metered Usage Reports, implementation: implemented }
+          - { id: m03-u08, title: Module assessment, implementation: implemented }
+          - { id: m03-u09, title: Summary, implementation: implemented }
       - id: m04
         title: Configure code scanning on GitHub
         url: https://learn.microsoft.com/en-us/training/modules/configure-code-scanning/
         unit_count: 7
-        implementation: planned
+        implementation: implemented
         units:
-          - { id: m04-u01, title: Introduction, implementation: planned }
-          - { id: m04-u02, title: What is code scanning?, implementation: planned }
-          - { id: m04-u03, title: Enable code scanning with third party tools, implementation: planned }
-          - { id: m04-u04, title: Configure code scanning, implementation: planned }
-          - { id: m04-u05, title: Configure code scanning exercise, implementation: planned }
-          - { id: m04-u06, title: Module assessment, implementation: planned }
-          - { id: m04-u07, title: Summary, implementation: planned }
+          - { id: m04-u01, title: Introduction, implementation: implemented }
+          - { id: m04-u02, title: What is code scanning?, implementation: implemented }
+          - { id: m04-u03, title: Enable code scanning with third party tools, implementation: implemented }
+          - { id: m04-u04, title: Configure code scanning, implementation: implemented }
+          - { id: m04-u05, title: Configure code scanning exercise, implementation: implemented }
+          - { id: m04-u06, title: Module assessment, implementation: implemented }
+          - { id: m04-u07, title: Summary, implementation: implemented }
       - id: m05
         title: Introduction to GitHub Copilot
         url: https://learn.microsoft.com/en-us/training/modules/introduction-to-github-copilot/
         unit_count: 7
-        implementation: planned
+        implementation: implemented
         units:
-          - { id: m05-u01, title: Introduction, implementation: planned }
-          - { id: m05-u02, title: GitHub Copilot, your AI pair programmer, implementation: planned }
-          - { id: m05-u03, title: Interact with Copilot, implementation: planned }
-          - { id: m05-u04, title: Set up, configure, and troubleshoot GitHub Copilot, implementation: planned }
-          - { id: m05-u05, title: Exercise - Develop with AI-powered code suggestions by using GitHub Copilot and VS Code, implementation: planned }
-          - { id: m05-u06, title: Module assessment, implementation: planned }
-          - { id: m05-u07, title: Summary, implementation: planned }
+          - { id: m05-u01, title: Introduction, implementation: implemented }
+          - { id: m05-u02, title: GitHub Copilot, your AI pair programmer, implementation: implemented }
+          - { id: m05-u03, title: Interact with Copilot, implementation: implemented }
+          - { id: m05-u04, title: Set up, configure, and troubleshoot GitHub Copilot, implementation: implemented }
+          - { id: m05-u05, title: Exercise - Develop with AI-powered code suggestions by using GitHub Copilot and VS Code, implementation: implemented }
+          - { id: m05-u06, title: Module assessment, implementation: implemented }
+          - { id: m05-u07, title: Summary, implementation: implemented }
       - id: m06
         title: Code with GitHub Codespaces
         url: https://learn.microsoft.com/en-us/training/modules/code-with-github-codespaces/
         unit_count: 7
-        implementation: planned
+        implementation: implemented
         units:
-          - { id: m06-u01, title: Introduction, implementation: planned }
-          - { id: m06-u02, title: The Codespace lifecycle, implementation: planned }
-          - { id: m06-u03, title: Personalize your Codespace, implementation: planned }
-          - { id: m06-u04, title: Codespaces versus GitHub.dev editor, implementation: planned }
-          - { id: m06-u05, title: Exercise - Code with Codespaces and Visual Studio Code, implementation: planned }
-          - { id: m06-u06, title: Module assessment, implementation: planned }
-          - { id: m06-u07, title: Summary, implementation: planned }
+          - { id: m06-u01, title: Introduction, implementation: implemented }
+          - { id: m06-u02, title: The Codespace lifecycle, implementation: implemented }
+          - { id: m06-u03, title: Personalize your Codespace, implementation: implemented }
+          - { id: m06-u04, title: Codespaces versus GitHub.dev editor, implementation: implemented }
+          - { id: m06-u05, title: Exercise - Code with Codespaces and Visual Studio Code, implementation: implemented }
+          - { id: m06-u06, title: Module assessment, implementation: implemented }
+          - { id: m06-u07, title: Summary, implementation: implemented }
       - id: m07
         title: Manage your work with GitHub Projects
         url: https://learn.microsoft.com/en-us/training/modules/manage-work-github-projects/
         unit_count: 8
-        implementation: planned
+        implementation: implemented
         units:
-          - { id: m07-u01, title: Introduction, implementation: planned }
-          - { id: m07-u02, title: Projects versus Projects Classic, implementation: planned }
-          - { id: m07-u03, title: How to create a project, implementation: planned }
-          - { id: m07-u04, title: How to organize your project, implementation: planned }
-          - { id: m07-u05, title: How to organize and automate your project, implementation: planned }
-          - { id: m07-u06, title: Insight and automation with projects, implementation: planned }
-          - { id: m07-u07, title: Module assessment, implementation: planned }
-          - { id: m07-u08, title: Summary, implementation: planned }
+          - { id: m07-u01, title: Introduction, implementation: implemented }
+          - { id: m07-u02, title: Projects versus Projects Classic, implementation: implemented }
+          - { id: m07-u03, title: How to create a project, implementation: implemented }
+          - { id: m07-u04, title: How to organize your project, implementation: implemented }
+          - { id: m07-u05, title: How to organize and automate your project, implementation: implemented }
+          - { id: m07-u06, title: Insight and automation with projects, implementation: implemented }
+          - { id: m07-u07, title: Module assessment, implementation: implemented }
+          - { id: m07-u08, title: Summary, implementation: implemented }
       - id: m08
         title: Communicate effectively on GitHub using Markdown
         url: https://learn.microsoft.com/en-us/training/modules/communicate-using-markdown/
         unit_count: 5
-        implementation: planned
+        implementation: implemented
         units:
-          - { id: m08-u01, title: Introduction, implementation: planned }
-          - { id: m08-u02, title: What is Markdown?, implementation: planned }
-          - { id: m08-u03, title: Exercise - Communicate using Markdown, implementation: planned }
-          - { id: m08-u04, title: Module assessment, implementation: planned }
-          - { id: m08-u05, title: Summary, implementation: planned }
+          - { id: m08-u01, title: Introduction, implementation: implemented }
+          - { id: m08-u02, title: What is Markdown?, implementation: implemented }
+          - { id: m08-u03, title: Exercise - Communicate using Markdown, implementation: implemented }
+          - { id: m08-u04, title: Module assessment, implementation: implemented }
+          - { id: m08-u05, title: Summary, implementation: implemented }
 
   - id: part-2
     title: GitHub Foundations Part 2 of 2
@@ -126,96 +126,96 @@ learning_paths:
         title: Contribute to an open-source project on GitHub
         url: https://learn.microsoft.com/en-us/training/modules/contribute-open-source/
         unit_count: 7
-        implementation: planned
+        implementation: implemented
         units:
-          - { id: m09-u01, title: Introduction, implementation: planned }
-          - { id: m09-u02, title: Identify where you can help, implementation: planned }
-          - { id: m09-u03, title: Contribute to an open-source repository, implementation: planned }
-          - { id: m09-u04, title: Exercise - Create your first pull request, implementation: planned }
-          - { id: m09-u05, title: Next steps, implementation: planned }
-          - { id: m09-u06, title: Module assessment, implementation: planned }
-          - { id: m09-u07, title: Summary, implementation: planned }
+          - { id: m09-u01, title: Introduction, implementation: implemented }
+          - { id: m09-u02, title: Identify where you can help, implementation: implemented }
+          - { id: m09-u03, title: Contribute to an open-source repository, implementation: implemented }
+          - { id: m09-u04, title: Exercise - Create your first pull request, implementation: implemented }
+          - { id: m09-u05, title: Next steps, implementation: implemented }
+          - { id: m09-u06, title: Module assessment, implementation: implemented }
+          - { id: m09-u07, title: Summary, implementation: implemented }
       - id: m10
         title: Manage an InnerSource program by using GitHub
         url: https://learn.microsoft.com/en-us/training/modules/manage-innersource-program-github/
         unit_count: 5
-        implementation: planned
+        implementation: implemented
         units:
-          - { id: m10-u01, title: Introduction, implementation: planned }
-          - { id: m10-u02, title: How to manage a successful InnerSource program, implementation: planned }
-          - { id: m10-u03, title: Exercise - InnerSource fundamentals, implementation: planned }
-          - { id: m10-u04, title: Module assessment, implementation: planned }
-          - { id: m10-u05, title: Summary, implementation: planned }
+          - { id: m10-u01, title: Introduction, implementation: implemented }
+          - { id: m10-u02, title: How to manage a successful InnerSource program, implementation: implemented }
+          - { id: m10-u03, title: Exercise - InnerSource fundamentals, implementation: implemented }
+          - { id: m10-u04, title: Module assessment, implementation: implemented }
+          - { id: m10-u05, title: Summary, implementation: implemented }
       - id: m11
         title: Maintain a secure repository by using GitHub best practices
         url: https://learn.microsoft.com/en-us/training/modules/maintain-secure-repository-github/
         unit_count: 6
-        implementation: planned
+        implementation: implemented
         units:
-          - { id: m11-u01, title: Introduction, implementation: planned }
-          - { id: m11-u02, title: How to maintain a secure GitHub repository, implementation: planned }
-          - { id: m11-u03, title: Automated security, implementation: planned }
-          - { id: m11-u04, title: Exercise - Secure your repository's supply chain, implementation: planned }
-          - { id: m11-u05, title: Module assessment, implementation: planned }
-          - { id: m11-u06, title: Summary, implementation: planned }
+          - { id: m11-u01, title: Introduction, implementation: implemented }
+          - { id: m11-u02, title: How to maintain a secure GitHub repository, implementation: implemented }
+          - { id: m11-u03, title: Automated security, implementation: implemented }
+          - { id: m11-u04, title: Exercise - Secure your repository's supply chain, implementation: implemented }
+          - { id: m11-u05, title: Module assessment, implementation: implemented }
+          - { id: m11-u06, title: Summary, implementation: implemented }
       - id: m12
         title: Introduction to GitHub administration
         url: https://learn.microsoft.com/en-us/training/modules/github-introduction-administration/
         unit_count: 7
-        implementation: planned
+        implementation: implemented
         units:
-          - { id: m12-u01, title: Introduction, implementation: planned }
-          - { id: m12-u02, title: What is GitHub administration?, implementation: planned }
-          - { id: m12-u03, title: How does GitHub authentication work?, implementation: planned }
-          - { id: m12-u04, title: How does GitHub organization and permissions work?, implementation: planned }
-          - { id: m12-u05, title: Managing enterprise access, permissions, and governance, implementation: planned }
-          - { id: m12-u06, title: Module assessment, implementation: planned }
-          - { id: m12-u07, title: Summary, implementation: planned }
+          - { id: m12-u01, title: Introduction, implementation: implemented }
+          - { id: m12-u02, title: What is GitHub administration?, implementation: implemented }
+          - { id: m12-u03, title: How does GitHub authentication work?, implementation: implemented }
+          - { id: m12-u04, title: How does GitHub organization and permissions work?, implementation: implemented }
+          - { id: m12-u05, title: Managing enterprise access, permissions, and governance, implementation: implemented }
+          - { id: m12-u06, title: Module assessment, implementation: implemented }
+          - { id: m12-u07, title: Summary, implementation: implemented }
       - id: m13
         title: Authenticate and authorize user identities on GitHub
         url: https://learn.microsoft.com/en-us/training/modules/authenticate-authorize-user-identities-github/
         unit_count: 7
-        implementation: planned
+        implementation: implemented
         units:
-          - { id: m13-u01, title: Introduction, implementation: planned }
-          - { id: m13-u02, title: User identity and access management, implementation: planned }
-          - { id: m13-u03, title: User authentication, implementation: planned }
-          - { id: m13-u04, title: User authorization, implementation: planned }
-          - { id: m13-u05, title: Team synchronization, implementation: planned }
-          - { id: m13-u06, title: Module assessment, implementation: planned }
-          - { id: m13-u07, title: Summary, implementation: planned }
+          - { id: m13-u01, title: Introduction, implementation: implemented }
+          - { id: m13-u02, title: User identity and access management, implementation: implemented }
+          - { id: m13-u03, title: User authentication, implementation: implemented }
+          - { id: m13-u04, title: User authorization, implementation: implemented }
+          - { id: m13-u05, title: Team synchronization, implementation: implemented }
+          - { id: m13-u06, title: Module assessment, implementation: implemented }
+          - { id: m13-u07, title: Summary, implementation: implemented }
       - id: m14
         title: Manage repository changes by using pull requests on GitHub
         url: https://learn.microsoft.com/en-us/training/modules/manage-changes-pull-requests-github/
         unit_count: 5
-        implementation: planned
+        implementation: implemented
         units:
-          - { id: m14-u01, title: Introduction, implementation: planned }
-          - { id: m14-u02, title: What are pull requests?, implementation: planned }
-          - { id: m14-u03, title: Exercise - Reviewing pull requests, implementation: planned }
-          - { id: m14-u04, title: Module assessment, implementation: planned }
-          - { id: m14-u05, title: Summary, implementation: planned }
+          - { id: m14-u01, title: Introduction, implementation: implemented }
+          - { id: m14-u02, title: What are pull requests?, implementation: implemented }
+          - { id: m14-u03, title: Exercise - Reviewing pull requests, implementation: implemented }
+          - { id: m14-u04, title: Module assessment, implementation: implemented }
+          - { id: m14-u05, title: Summary, implementation: implemented }
       - id: m15
         title: Search and organize repository history by using GitHub
         url: https://learn.microsoft.com/en-us/training/modules/search-organize-repository-history-github/
         unit_count: 5
-        implementation: planned
+        implementation: implemented
         units:
-          - { id: m15-u01, title: Introduction, implementation: planned }
-          - { id: m15-u02, title: How to search and organize repository history by using GitHub, implementation: planned }
-          - { id: m15-u03, title: Exercise - Connect the dots in a GitHub repository, implementation: planned }
-          - { id: m15-u04, title: Module assessment, implementation: planned }
-          - { id: m15-u05, title: Summary, implementation: planned }
+          - { id: m15-u01, title: Introduction, implementation: implemented }
+          - { id: m15-u02, title: How to search and organize repository history by using GitHub, implementation: implemented }
+          - { id: m15-u03, title: Exercise - Connect the dots in a GitHub repository, implementation: implemented }
+          - { id: m15-u04, title: Module assessment, implementation: implemented }
+          - { id: m15-u05, title: Summary, implementation: implemented }
       - id: m16
         title: Using GitHub Copilot with Python
         url: https://learn.microsoft.com/en-us/training/modules/introduction-copilot-python/
         unit_count: 7
-        implementation: planned
+        implementation: implemented
         units:
-          - { id: m16-u01, title: Introduction, implementation: planned }
-          - { id: m16-u02, title: What is GitHub Copilot?, implementation: planned }
-          - { id: m16-u03, title: Exercise - Set up GitHub Copilot to work with Visual Studio Code, implementation: planned }
-          - { id: m16-u04, title: Use GitHub Copilot with Python, implementation: planned }
-          - { id: m16-u05, title: Exercise - Update a Python web API with GitHub Copilot, implementation: planned }
-          - { id: m16-u06, title: Module assessment, implementation: planned }
-          - { id: m16-u07, title: Summary, implementation: planned }
+          - { id: m16-u01, title: Introduction, implementation: implemented }
+          - { id: m16-u02, title: What is GitHub Copilot?, implementation: implemented }
+          - { id: m16-u03, title: Exercise - Set up GitHub Copilot to work with Visual Studio Code, implementation: implemented }
+          - { id: m16-u04, title: Use GitHub Copilot with Python, implementation: implemented }
+          - { id: m16-u05, title: Exercise - Update a Python web API with GitHub Copilot, implementation: implemented }
+          - { id: m16-u06, title: Module assessment, implementation: implemented }
+          - { id: m16-u07, title: Summary, implementation: implemented }
