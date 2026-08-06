@@ -56,11 +56,32 @@ jobs:
           echo "number=$number" >> "$GITHUB_OUTPUT"
           echo "existing=false" >> "$GITHUB_OUTPUT"
 
-      - name: Convert template copy to clean learner workspace
-        if: steps.course.outputs.existing == 'false'
+      - name: Ensure template copy is a clean learner workspace
         shell: bash
         run: |
           set -euo pipefail
+          # Recovery is intentionally idempotent. If Issue creation succeeded in an
+          # earlier attempt but source-only template files remain, finish bootstrap.
+          needs_bootstrap=false
+          for path in \
+            LICENSE \
+            .github/CONTRIBUTING.md \
+            .github/CODE_OF_CONDUCT.md \
+            .github/SECURITY.md \
+            .github/ARCHITECTURE.md \
+            .github/MAINTAINING.md \
+            .github/workflows/quality.yml; do
+            if [[ -e "$path" ]]; then
+              needs_bootstrap=true
+              break
+            fi
+          done
+
+          if [[ "$needs_bootstrap" == "false" ]]; then
+            echo "Learner workspace already initialized."
+            exit 0
+          fi
+
           python3 .gh900/workspace.py bootstrap
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -72,13 +93,19 @@ jobs:
             git push origin HEAD:main
           fi
 
-      - name: Post first unit
-        if: steps.course.outputs.existing == 'false'
+      - name: Ensure first unit is posted
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
           ISSUE_NUMBER: ${{ steps.course.outputs.number }}
         run: |
           set -euo pipefail
+          # A previous attempt may have created the Issue but failed before posting the
+          # first lesson. Detect any rendered course unit by its stable progress table.
+          if gh api --paginate "repos/${GITHUB_REPOSITORY}/issues/${ISSUE_NUMBER}/comments" \
+            --jq '.[].body' | grep -Fq '| Course position | Progress |'; then
+            echo "Course unit already present; startup is complete."
+            exit 0
+          fi
           python3 .gh900/course_unit_state.py --first --render > /tmp/unit.md
           gh issue comment "$ISSUE_NUMBER" --body-file /tmp/unit.md
