@@ -14,6 +14,14 @@ Recommended repository metadata:
 
 A social-preview image is recommended for links shared outside GitHub. It should identify the project as an independent interactive GH-900/GitHub Foundations course and should not imply Microsoft or GitHub endorsement.
 
+## Source vs learner copies
+
+The upstream repository is intentionally content-rich because maintainers must be able to audit all 106 units. A learner copy is intentionally not.
+
+`Step 0 - Start GH-900 Course` removes source-maintenance directories from a new learner copy and leaves only the small learner README, the internal `.gh900/` runtime package, and the workflows needed to continue the course.
+
+Do not move source-only documentation or maintainer tooling into the learner-visible exercise baseline. Conversely, do not remove `.gh900/` from the template without replacing it with another self-contained runtime delivery mechanism; copied repositories must remain able to run the complete course without depending on later maintainer intervention.
+
 ## General feature settings
 
 Recommended source-repository settings:
@@ -33,7 +41,7 @@ For the upstream source, prefer a predictable linear history:
 - enable automatic deletion of merged head branches;
 - optionally allow contributors to update PR branches when base changes.
 
-These are source-maintenance preferences. Learner repositories may use different merge behavior because merge strategies themselves are part of Git/GitHub learning.
+These are source-maintenance preferences. Learner repositories may use different merge behavior because merge strategies themselves are course material.
 
 ## Protect `main`
 
@@ -46,37 +54,48 @@ Use a branch ruleset or branch-protection rule targeting `main` with the followi
 - block branch deletion;
 - require linear history if squash-only merging is used.
 
-For a single-maintainer educational project, a mandatory second human approval can be optional; the important invariant is that the automated quality gate cannot be skipped accidentally. If additional maintainers join, requiring at least one approving review becomes appropriate.
-
-Do not configure ambiguous duplicate status-check job names across workflows.
+For a single-maintainer educational project, a mandatory second human approval can be optional. The key invariant is that the automated quality gate cannot be skipped accidentally.
 
 ## GitHub Actions settings
 
 Recommended Actions policy for the upstream source:
 
-- allow GitHub-authored Actions required by the repository;
-- require Actions to be pinned to a full-length commit SHA when the repository setting is available;
+- allow the GitHub-authored Actions required by the repository;
+- require full-length commit-SHA pinning when that repository setting is available;
 - set the default `GITHUB_TOKEN` workflow permission to read-only;
-- do not allow GitHub Actions to create or approve Pull Requests unless a future workflow explicitly needs that capability;
-- require approval for workflows from untrusted fork contributors according to the repository's contribution model.
+- do not allow Actions to create or approve Pull Requests globally unless a future workflow explicitly needs it;
+- require approval for workflows from untrusted fork contributors according to the contribution model.
 
-The workflows themselves declare explicit permissions and use immutable Action SHAs. `Course Quality` is source-only; learner copies use only the lightweight course runtime.
+The learner workflows request write permissions explicitly because the course creates and removes its own temporary `sandbox/mXX-uYY` and `lab/mXX-uYY` branches and updates the course Issue.
+
+`Course Quality` is source-only and is removed from learner copies by Step 0.
+
+## Learner runtime invariants
+
+Changes to `.gh900/` or the learner workflows must preserve all of the following:
+
+- Part 1 contains Modules 1–8 / 57 units;
+- Part 2 contains Modules 9–16 / 49 units;
+- total progression is exactly 106 units;
+- all learner-visible lesson text is rendered into the course Issue;
+- assessments use `/answer ...` rather than learner answer files;
+- scenario-only work uses `/scenario ...` rather than evidence worksheets;
+- a hands-on unit receives only the files required by that unit;
+- generic `submission.md` files are not part of learner runtime;
+- PR exercises target a temporary sandbox branch instead of `main`;
+- temporary unit branches/files are cleaned after successful validation;
+- `main` remains the clean learner baseline between exercises;
+- internal setup pushes cannot accidentally advance the state machine.
+
+`scripts/test_learner_runtime_v2.py` is the automated regression contract for these rules.
 
 ## Security and analysis
 
-For the public upstream repository, enable the applicable GitHub security features:
+For the public upstream repository, enable the applicable GitHub security features in repository settings, including dependency alerts, secret detection/protection, private reporting, and code scanning where available.
 
-- dependency graph;
-- Dependabot alerts;
-- Dependabot security updates where a supported dependency ecosystem is detected;
-- secret scanning;
-- push protection;
-- private vulnerability reporting / repository security advisories;
-- code scanning default setup, including GitHub Actions workflow analysis when available.
+The repository intentionally avoids adding source-maintenance automation that would create unrelated maintenance activity in every learner copy. External Action references are pinned and checked by `scripts/audit_public_repository.py`.
 
-The repository intentionally avoids adding a `dependabot.yml` solely for GitHub Actions because template copies would inherit it and receive maintenance PRs unrelated to the learner course. Action references are instead pinned and protected by `scripts/audit_public_repository.py`; upstream dependency automation can be enabled at the repository-settings level when appropriate.
-
-Never store course credentials in Actions secrets when a workflow can use the scoped `GITHUB_TOKEN` instead.
+Never use a real credential as course exercise content.
 
 ## Community health
 
@@ -88,25 +107,29 @@ The source includes:
 - `.github/CODE_OF_CONDUCT.md`;
 - `.github/SECURITY.md`.
 
-Issue and Pull Request templates are intentionally omitted from the template baseline because the course includes hands-on creation of GitHub collaboration objects. A source-only issue form would be useful for maintainers, but GitHub templates copy `.github/ISSUE_TEMPLATE` into learner repositories and could alter the learner exercise UX.
+Issue and Pull Request templates are intentionally omitted from the template baseline because the course includes hands-on creation of GitHub collaboration objects and copies would inherit those templates.
 
-Similarly, do not pre-create root `SECURITY.md` or `.github/CODEOWNERS`: those are explicit learner deliverables in Module 11.
+Root `SECURITY.md` and `.github/CODEOWNERS` are also not pre-created in the learner baseline because creating them is part of the security exercise. Runtime v2 creates neither in advance; the learner creates them on the temporary unit branch and cleanup removes that exercise branch afterward.
 
 ## Curriculum update procedure
 
 When Microsoft Learn or the GH-900 study guide changes materially:
 
 1. identify the new authoritative source commit;
-2. compare the affected Learn modules and unit ordering;
-3. update `curriculum/microsoft-source-lock.json` and the canonical curriculum inventory if required;
-4. update independently written local lesson coverage;
-5. update hands-on/simulation behavior when the capability changed;
-6. update `docs/COVERAGE.md` with the new baseline date/commit;
-7. run the complete quality gate before merge.
+2. compare the affected learning path, module, and unit ordering;
+3. update `curriculum/microsoft-source-lock.json` and `curriculum/official-curriculum.yml` as required;
+4. update independently written content in `modules/` / `unit-details/`;
+5. update source fixture/question material under `labs/` when needed;
+6. update the packaged equivalents under `.gh900/content/`, `.gh900/details/`, `.gh900/data/`, or `.gh900/templates/`;
+7. update runtime behavior when the exercise model changed;
+8. update `docs/COVERAGE.md` with the new baseline;
+9. run the complete `Course Quality` gate before merge.
 
-Do not silently move the source baseline. The pinned commit is part of the repository's reproducibility contract.
+Do not update source authoring without updating the packaged learner runtime. The quality gate should detect divergence, but synchronized source/runtime changes remain a maintainer responsibility.
 
-## Action dependency update procedure
+Do not silently move the Microsoft source baseline. The pinned commit is part of the reproducibility contract.
+
+## Runtime dependency update procedure
 
 When `actions/checkout` or another external Action is updated:
 
@@ -114,10 +137,25 @@ When `actions/checkout` or another external Action is updated:
 2. resolve the release tag to its exact 40-character commit SHA;
 3. replace the workflow SHA and update the adjacent version comment;
 4. let `scripts/audit_public_repository.py` confirm that no mutable Action reference remains;
-5. merge only after `Course Quality` passes.
+5. verify both source CI and a fresh learner-copy startup before considering the change complete.
+
+## Required end-to-end learner test
+
+Before a major runtime release, create a fresh repository through **Copy Exercise** and verify at minimum:
+
+1. Step 0 creates the course Issue without manual workflow dispatch;
+2. the learner `main` is cleaned automatically;
+3. reading units render fully in the Issue;
+4. entering a hands-on unit creates only its expected temporary files/branches;
+5. an invalid activity is rejected;
+6. a valid activity advances and removes the old temporary state;
+7. an assessment accepts `/answer ...` and reports wrong question numbers without revealing answers;
+8. a scenario accepts `/scenario ...`;
+9. the Part 1 → Part 2 transition is displayed correctly;
+10. source-only `Course Quality` does not run in the learner copy.
 
 ## Release and archival posture
 
-The course currently follows the maintained `main` branch rather than versioned release trains. If historical certification baselines need to remain reproducible, create signed/annotated tags or GitHub Releases tied to the corresponding pinned Microsoft Learn snapshot rather than rewriting old tags.
+The maintained course currently follows `main` rather than versioned release trains. If historical certification baselines need to remain reproducible, use tags or Releases tied to the corresponding pinned Microsoft Learn snapshot rather than rewriting old tags.
 
-If the project is ever discontinued, archive the repository rather than leaving workflows and curriculum claims appearing actively maintained.
+If maintenance stops permanently, archive the repository rather than leaving curriculum claims and workflows appearing actively maintained.
