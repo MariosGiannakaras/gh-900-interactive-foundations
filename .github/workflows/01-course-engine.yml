@@ -21,19 +21,24 @@ concurrency:
 
 jobs:
   progress:
-    # Never run learner state in a repository that is itself marked as a template.
-    # For pull requests, also reject drive-by PRs before checkout so untrusted fork
-    # code is not executed.
+    # Learner state never runs in a repository that is itself a template.
+    # Public drive-by comments/PRs are rejected before a runner is allocated.
     if: >-
       !github.event.repository.is_template &&
       (github.event_name != 'pull_request' ||
        github.event.pull_request.author_association == 'OWNER' ||
        github.event.pull_request.author_association == 'MEMBER' ||
-       github.event.pull_request.author_association == 'COLLABORATOR')
-    runs-on: ubuntu-latest
+       github.event.pull_request.author_association == 'COLLABORATOR') &&
+      (github.event_name != 'issue_comment' ||
+       (github.event.comment.user.type != 'Bot' &&
+        (github.event.comment.author_association == 'OWNER' ||
+         github.event.comment.author_association == 'MEMBER' ||
+         github.event.comment.author_association == 'COLLABORATOR')))
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
     steps:
       - name: Check out the event revision
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
 
@@ -51,9 +56,8 @@ jobs:
         run: |
           set -euo pipefail
 
-          # Comments written by this workflow are GitHub bot comments and must never
-          # recursively drive the state machine. Public drive-by commenters are also
-          # not allowed to progress somebody else's learning repository.
+          # Defense in depth: keep the same authorization check inside the script in
+          # case this job-level gate is changed later.
           if [[ "$EVENT_NAME" == "issue_comment" ]]; then
             if [[ "${COMMENT_AUTHOR_TYPE:-}" == "Bot" ]]; then
               echo "Ignoring bot-generated comment."

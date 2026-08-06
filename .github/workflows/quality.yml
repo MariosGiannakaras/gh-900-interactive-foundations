@@ -10,20 +10,30 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: course-quality-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   validate:
-    runs-on: ubuntu-latest
+    # This is a source-maintenance gate, not learner-course runtime.
+    if: github.event.repository.is_template
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
     steps:
       - name: Check out course repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Check out pinned Microsoft Learn source snapshot
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: MicrosoftDocs/learn
           ref: 66ab07a355b38fb0f5a4cef8240eb2f765c839c8
           path: _microsoft_learn
           fetch-depth: 1
+          persist-credentials: false
           sparse-checkout: |
             learn-pr/student-evangelism/intro-to-git
             learn-pr/github/introduction-to-github
@@ -47,6 +57,9 @@ jobs:
 
       - name: Audit complete 16-module interactive course
         run: python3 scripts/audit_complete_course.py
+
+      - name: Audit public repository hardening
+        run: python3 scripts/audit_public_repository.py
 
       - name: Validate full 106-unit runtime chain
         run: python3 scripts/test_course_runtime.py
@@ -74,7 +87,7 @@ jobs:
 
           failures = []
           Dir[".github/workflows/*.{yml,yaml}"].each do |file|
-            data = YAML.load_file(file)
+            data = YAML.safe_load_file(file, aliases: true)
             (data["jobs"] || {}).each do |job_name, job|
               (job["steps"] || []).each_with_index do |step, index|
                 script = step["run"]
@@ -105,6 +118,7 @@ jobs:
           python3 -m py_compile
           scripts/check_curriculum_manifest.py
           scripts/audit_complete_course.py
+          scripts/audit_public_repository.py
           scripts/audit_microsoft_semantic_depth.py
           scripts/course_unit_state.py
           scripts/test_course_runtime.py

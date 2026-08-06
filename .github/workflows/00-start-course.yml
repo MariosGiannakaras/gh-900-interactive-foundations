@@ -15,10 +15,13 @@ jobs:
     # repository generated from the template starts automatically on its initial main push.
     if: |
       !github.event.repository.is_template
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
     steps:
       - name: Check out learner repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Create the course Issue and post Unit 1
         shell: bash
@@ -39,13 +42,13 @@ jobs:
           <!-- gh900-state:m01-u01 -->
           # GH-900 Interactive Foundations
 
-          This Issue is your live course interface. It moves through the official Microsoft Learn curriculum **unit by unit** and keeps your progress inside your own repository.
+          This Issue is the live course interface. It moves through the official Microsoft Learn curriculum **unit by unit** and keeps progress inside this repository.
 
           - Do not edit the hidden `gh900-state` marker.
           - Follow only the latest course instruction.
           - Theory units use `/next` after reading.
           - Hands-on and assessment units advance automatically after the required GitHub change is pushed and validated.
-          - Correct assessment answers are never shown before you submit.
+          - Correct assessment answers are never shown before submission.
 
           **Source baseline:** MicrosoftDocs/learn `66ab07a355b38fb0f5a4cef8240eb2f765c839c8` (2026-08-06).
           EOF
