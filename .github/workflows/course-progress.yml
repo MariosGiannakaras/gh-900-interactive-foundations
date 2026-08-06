@@ -1,0 +1,159 @@
+name: GH-900 Full Course Progress
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - "lab/module-*"
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: read
+
+concurrency:
+  group: gh900-full-course-${{ github.repository }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  progress:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Evaluate full-course progress
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PROGRESS_TITLE: "GH-900 Interactive Foundations — Full Course Progress"
+          MODULE1_TITLE: "GH-900 Interactive Course - Module 1: Introduction to Git"
+        run: |
+          set -euo pipefail
+
+          find_or_create_progress_issue() {
+            local row
+            row=$(gh issue list --state all --limit 100 --json number,title,state \
+              | jq -r --arg title "$PROGRESS_TITLE" '.[] | select(.title == $title) | [.number,.state] | @tsv' \
+              | head -n 1)
+            if [[ -z "$row" ]]; then
+              local url
+              url=$(gh issue create --title "$PROGRESS_TITLE" --body $'This Issue records progress through all 16 official Microsoft Learn GitHub Foundations modules.\n\nUse your own fork for the course. Complete modules in order; GitHub Actions validates each submission and posts the next module automatically.')
+              PROGRESS_NUMBER="${url##*/}"
+            else
+              PROGRESS_NUMBER=$(printf '%s' "$row" | cut -f1)
+              local state
+              state=$(printf '%s' "$row" | cut -f2)
+              if [[ "$state" == "CLOSED" ]]; then
+                gh issue reopen "$PROGRESS_NUMBER" >/dev/null
+              fi
+            fi
+          }
+
+          module_instruction() {
+            local module="$1"
+            local key
+            key=$(printf '%02d' "$module")
+            local title readme branch submission
+            title=$(jq -r --arg m "$key" '.[$m].title' curriculum/course-catalog.json)
+            readme=$(jq -r --arg m "$key" '.[$m].readme' curriculum/course-catalog.json)
+            branch=$(jq -r --arg m "$key" '.[$m].branch' curriculum/course-catalog.json)
+            submission="labs/module-${key}/submission.md"
+
+            if [[ "$key" == "01" ]]; then
+              printf '## Start Module 1 — %s\n\n' "$title"
+              printf '%s\n\n' 'Open the dedicated Module 1 course Issue and follow its step-by-step instructions. If it does not exist yet, run **GH-900 Module 1 Interactive Course** from the Actions tab once.'
+              printf 'Theory: [%s](../blob/main/%s)\n' "$readme" "$readme"
+            else
+              printf '## Next: Module %d — %s\n\n' "$module" "$title"
+              printf '1. Read [%s](../blob/main/%s).\n' "$readme" "$readme"
+              printf '2. Create branch `%s` from `main`.\n' "$branch"
+              printf '3. Complete the hands-on activities in [%s](../blob/main/%s).\n' "$submission" "$submission"
+              printf '%s\n' '4. Replace all evidence placeholders, set `ACTIVITY_STATUS: COMPLETE`, answer the blind knowledge check, commit, and push.'
+              printf '%s\n' '5. This workflow will validate the branch and post the next module automatically.'
+            fi
+          }
+
+          find_or_create_progress_issue
+
+          if [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ]]; then
+            module1_state=$(gh issue list --state all --limit 100 --json title,state \
+              | jq -r --arg title "$MODULE1_TITLE" '.[] | select(.title == $title) | .state' \
+              | head -n 1)
+            if [[ "$module1_state" != "CLOSED" ]]; then
+              module_instruction 1 > /tmp/next.md
+              gh issue comment "$PROGRESS_NUMBER" --body-file /tmp/next.md
+              exit 0
+            fi
+
+            comments=$(gh issue view "$PROGRESS_NUMBER" --json comments --jq '.comments[].body' || true)
+            last=1
+            for n in $(seq 2 16); do
+              key=$(printf '%02d' "$n")
+              if grep -q "course-complete:m${key}" <<<"$comments"; then
+                last=$n
+              else
+                break
+              fi
+            done
+            if (( last >= 16 )); then
+              gh issue comment "$PROGRESS_NUMBER" --body $'## Course already complete\n\nAll 16 modules are recorded as completed.'
+              gh issue close "$PROGRESS_NUMBER" --reason completed
+            else
+              module_instruction $((last + 1)) > /tmp/next.md
+              gh issue comment "$PROGRESS_NUMBER" --body-file /tmp/next.md
+            fi
+            exit 0
+          fi
+
+          if [[ ! "$GITHUB_REF_NAME" =~ ^lab/module-([0-9]{2})$ ]]; then
+            exit 0
+          fi
+          key="${BASH_REMATCH[1]}"
+          module=$((10#$key))
+          if (( module < 2 || module > 16 )); then
+            exit 0
+          fi
+
+          set +e
+          python3 scripts/validate_course_module.py --module "$module" --json > /tmp/result.json
+          result=$?
+          set -e
+          message=$(jq -r '.message' /tmp/result.json)
+          title=$(jq -r '.title' /tmp/result.json)
+
+          if (( result != 0 )); then
+            {
+              printf '### Module %d needs another attempt — %s\n\n' "$module" "$title"
+              printf '%s\n' '```text'
+              printf '%s\n' "$message"
+              printf '%s\n\n' '```'
+              printf '%s\n' 'Correct the listed items on this lab branch and push again. Correct assessment answers are not revealed.'
+            } > /tmp/fail.md
+            gh issue comment "$PROGRESS_NUMBER" --body-file /tmp/fail.md
+            exit "$result"
+          fi
+
+          marker="<!-- course-complete:m${key} -->"
+          if gh issue view "$PROGRESS_NUMBER" --json comments --jq '.comments[].body' | grep -q "$marker"; then
+            echo "Module ${key} already recorded as complete."
+            exit 0
+          fi
+
+          {
+            printf '%s\n' "$marker"
+            printf '## Module %d complete — %s\n\n' "$module" "$title"
+            printf '%s\n' 'Hands-on evidence and the blind knowledge check passed validation.'
+          } > /tmp/pass.md
+          gh issue comment "$PROGRESS_NUMBER" --body-file /tmp/pass.md
+
+          if (( module == 16 )); then
+            gh issue comment "$PROGRESS_NUMBER" --body $'## GH-900 Interactive Foundations complete\n\nAll 16 Microsoft Learn modules have been completed through the interactive course. Use the official GH-900 Practice Assessment and exam-style mocks for final exam readiness.'
+            gh issue close "$PROGRESS_NUMBER" --reason completed
+            exit 0
+          fi
+
+          module_instruction $((module + 1)) > /tmp/next.md
+          gh issue comment "$PROGRESS_NUMBER" --body-file /tmp/next.md

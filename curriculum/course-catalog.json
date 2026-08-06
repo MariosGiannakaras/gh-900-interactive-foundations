@@ -1,0 +1,18 @@
+{
+  "01":{"title":"Introduction to Git","readme":"modules/01-introduction-to-git/README.md","branch":"lab/module-01-git"},
+  "02":{"title":"Introduction to GitHub","readme":"modules/02-introduction-to-github/README.md","branch":"lab/module-02"},
+  "03":{"title":"Introduction to GitHub's products","readme":"modules/03-github-products/README.md","branch":"lab/module-03"},
+  "04":{"title":"Configure code scanning on GitHub","readme":"modules/04-code-scanning/README.md","branch":"lab/module-04"},
+  "05":{"title":"Introduction to GitHub Copilot","readme":"modules/05-github-copilot/README.md","branch":"lab/module-05"},
+  "06":{"title":"Code with GitHub Codespaces","readme":"modules/06-github-codespaces/README.md","branch":"lab/module-06"},
+  "07":{"title":"Manage your work with GitHub Projects","readme":"modules/07-github-projects/README.md","branch":"lab/module-07"},
+  "08":{"title":"Communicate effectively on GitHub using Markdown","readme":"modules/08-markdown/README.md","branch":"lab/module-08"},
+  "09":{"title":"Contribute to an open-source project on GitHub","readme":"modules/09-open-source/README.md","branch":"lab/module-09"},
+  "10":{"title":"Manage an InnerSource program by using GitHub","readme":"modules/10-innersource/README.md","branch":"lab/module-10"},
+  "11":{"title":"Maintain a secure repository by using GitHub best practices","readme":"modules/11-secure-repository/README.md","branch":"lab/module-11"},
+  "12":{"title":"Introduction to GitHub administration","readme":"modules/12-github-administration/README.md","branch":"lab/module-12"},
+  "13":{"title":"Authenticate and authorize user identities on GitHub","readme":"modules/13-authentication-authorization/README.md","branch":"lab/module-13"},
+  "14":{"title":"Manage repository changes by using pull requests on GitHub","readme":"modules/14-pull-requests/README.md","branch":"lab/module-14"},
+  "15":{"title":"Search and organize repository history by using GitHub","readme":"modules/15-search-history/README.md","branch":"lab/module-15"},
+  "16":{"title":"Using GitHub Copilot with Python","readme":"modules/16-copilot-python/README.md","branch":"lab/module-16"}
+}

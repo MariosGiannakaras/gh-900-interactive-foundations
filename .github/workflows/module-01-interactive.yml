@@ -4,7 +4,6 @@ on:
   workflow_dispatch:
   push:
     branches:
-      - main
       - lab/module-01-git
 
 permissions:
@@ -25,6 +24,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           COURSE_TITLE: "GH-900 Interactive Course - Module 1: Introduction to Git"
+          PROGRESS_TITLE: "GH-900 Interactive Foundations — Full Course Progress"
         run: |
           set -euo pipefail
 
@@ -46,9 +46,13 @@ jobs:
             issue_state=$(printf '%s' "$row" | cut -f2)
           fi
 
-          if [[ "$GITHUB_REF" == "refs/heads/main" ]]; then
+          if [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ]]; then
             if [[ "$created" == "true" ]]; then
               gh issue comment "$issue_number" --body-file course-content/module-01/step-1.md
+            elif [[ "$issue_state" == "OPEN" ]]; then
+              gh issue comment "$issue_number" --body $'## Module 1 is already active\n\nContinue from the latest course instruction in this Issue. The workflow will post the next checkpoint after your next valid push.'
+            else
+              echo "Module 1 is already completed. Use the Full Course Progress issue for the next module."
             fi
             exit 0
           fi
@@ -111,8 +115,27 @@ jobs:
           set -e
 
           if (( result == 0 )); then
-            gh issue comment "$issue_number" --body $'## Module 1 complete — Introduction to Git\n\nAssessment passed. You have completed all 6 Microsoft Learn units and the concepts/activities in the official linked GitHub Skills Introduction to Git exercise.\n\nRead the Unit 6 summary in `modules/01-introduction-to-git/README.md` once more before Module 2.'
+            gh issue comment "$issue_number" --body $'## Module 1 complete — Introduction to Git\n\nAssessment passed. You have completed all 6 Microsoft Learn units and the concepts/activities in the official linked GitHub Skills Introduction to Git exercise.'
             gh issue close "$issue_number" --reason completed
+
+            progress_row=$(gh issue list --state all --limit 100 --json number,title,state \
+              | jq -r --arg title "$PROGRESS_TITLE" '.[] | select(.title == $title) | [.number,.state] | @tsv' \
+              | head -n 1)
+            if [[ -z "$progress_row" ]]; then
+              progress_url=$(gh issue create --title "$PROGRESS_TITLE" --body $'This Issue records progress through all 16 official Microsoft Learn GitHub Foundations modules. Complete modules in order; GitHub Actions validates each submission and posts the next module automatically.')
+              progress_number="${progress_url##*/}"
+            else
+              progress_number=$(printf '%s' "$progress_row" | cut -f1)
+              progress_state=$(printf '%s' "$progress_row" | cut -f2)
+              if [[ "$progress_state" == "CLOSED" ]]; then
+                gh issue reopen "$progress_number" >/dev/null
+              fi
+            fi
+
+            if ! gh issue view "$progress_number" --json comments --jq '.comments[].body' | grep -q 'course-complete:m01'; then
+              gh issue comment "$progress_number" --body $'<!-- course-complete:m01 -->\n## Module 1 complete — Introduction to Git\n\nThe full-course progression is now active.'
+              gh issue comment "$progress_number" --body $'## Next: Module 2 — Introduction to GitHub\n\n1. Read [`modules/02-introduction-to-github/README.md`](../blob/main/modules/02-introduction-to-github/README.md).\n2. Create branch `lab/module-02` from `main`.\n3. Complete [`labs/module-02/submission.md`](../blob/main/labs/module-02/submission.md).\n4. Replace all evidence placeholders, set `ACTIVITY_STATUS: COMPLETE`, answer the blind knowledge check, commit, and push.\n5. The full-course workflow will validate it and post Module 3 automatically.'
+            fi
           else
             printf '%s\n' "$output" > /tmp/module01-result.txt
             {

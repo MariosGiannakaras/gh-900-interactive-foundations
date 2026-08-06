@@ -17,23 +17,55 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v4
 
-      - name: Validate curriculum inventory
+      - name: Validate official curriculum inventory
         run: python3 scripts/check_curriculum_manifest.py
 
-      - name: Compile Python validators
-        run: python3 -m py_compile scripts/check_curriculum_manifest.py scripts/validate_module_01.py
+      - name: Audit complete 16-module interactive course
+        run: python3 scripts/audit_complete_course.py
 
-      - name: Confirm blank assessment is rejected
+      - name: Parse workflow YAML files
+        shell: bash
+        run: |
+          ruby <<'RUBY'
+          require "yaml"
+          Dir[".github/workflows/*.{yml,yaml}"].each do |file|
+            YAML.parse_file(file)
+            puts "parsed #{file}"
+          end
+          RUBY
+
+      - name: Compile Python validators
+        run: >-
+          python3 -m py_compile
+          scripts/check_curriculum_manifest.py
+          scripts/audit_complete_course.py
+          scripts/validate_module_01.py
+          scripts/validate_course_module.py
+
+      - name: Confirm untouched Module 1 assessment is rejected
         shell: bash
         run: |
           set +e
           python3 scripts/validate_module_01.py
           result=$?
           set -e
-
           if [[ "$result" -ne 2 ]]; then
-            echo "Expected untouched assessment to fail with format/incomplete exit code 2, got $result."
+            echo "Expected untouched Module 1 assessment to fail with exit code 2, got $result."
             exit 1
           fi
 
-          echo "Untouched assessment is correctly rejected until the learner selects one answer per question."
+      - name: Confirm untouched Modules 2-16 submissions are rejected
+        shell: bash
+        run: |
+          for n in $(seq 2 16); do
+            set +e
+            python3 scripts/validate_course_module.py --module "$n" >/tmp/module-result.txt 2>&1
+            result=$?
+            set -e
+            if [[ "$result" -eq 0 ]]; then
+              echo "Untouched Module $n unexpectedly passed."
+              cat /tmp/module-result.txt
+              exit 1
+            fi
+          done
+          echo "All untouched learner submissions are correctly rejected."
