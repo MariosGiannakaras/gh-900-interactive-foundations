@@ -24,18 +24,44 @@ def fetch_sandbox(unit: str) -> bool:
     return git("fetch", "origin", f"{remote}:{local}").returncode == 0
 
 
-def changed_from_sandbox(unit: str, rel: str) -> bool:
+def baseline_commit(unit: str) -> str | None:
     if not fetch_sandbox(unit):
+        return None
+    ref = f"origin/sandbox/{unit}"
+    result = git(
+        "log",
+        ref,
+        "--format=%H",
+        "-n",
+        "1",
+        "--fixed-strings",
+        f"--grep=[gh900 setup] {unit}",
+    )
+    value = result.stdout.strip() if result.returncode == 0 else ""
+    return value or None
+
+
+def changed_from_baseline(unit: str, rel: str) -> bool:
+    baseline = baseline_commit(unit)
+    if not baseline:
         return False
-    sandbox = f"origin/sandbox/{unit}"
-    result = git("diff", "--quiet", f"{sandbox}...HEAD", "--", rel)
+    result = git("diff", "--quiet", f"{baseline}...HEAD", "--", rel)
     return result.returncode == 1
 
 
 def learner_commit_count(unit: str) -> int:
-    if not fetch_sandbox(unit):
+    baseline = baseline_commit(unit)
+    if not baseline:
         return 0
-    result = git("rev-list", "--count", f"origin/sandbox/{unit}..HEAD")
+    result = git("rev-list", "--count", f"{baseline}..HEAD")
+    return int(result.stdout.strip() or "0") if result.returncode == 0 else 0
+
+
+def learner_merge_count(unit: str) -> int:
+    baseline = baseline_commit(unit)
+    if not baseline:
+        return 0
+    result = git("rev-list", "--count", "--merges", f"{baseline}..HEAD")
     return int(result.stdout.strip() or "0") if result.returncode == 0 else 0
 
 
@@ -43,7 +69,7 @@ def require_changed(unit: str, rel: str, errors: list[str]) -> None:
     path = ROOT / rel
     if not path.exists():
         errors.append(f"Required exercise file is missing: {rel}")
-    elif not changed_from_sandbox(unit, rel):
+    elif not changed_from_baseline(unit, rel):
         errors.append(f"Make a real change to {rel} on the learner branch.")
 
 
@@ -65,8 +91,7 @@ def validate_module1(unit: str, errors: list[str]) -> None:
         errors.append("Finish the VS Code branch exercise TODO.")
     if learner_commit_count(unit) < 3:
         errors.append("Create at least three learner commits during the Git exercise.")
-    merges = git("rev-list", "--merges", f"origin/sandbox/{unit}..HEAD")
-    if merges.returncode == 0 and not merges.stdout.strip():
+    if learner_merge_count(unit) < 1:
         errors.append("Create and merge the temporary practice branch so the merge is visible in history.")
 
 
@@ -179,9 +204,9 @@ def validate_security(unit: str, errors: list[str]) -> None:
         lines = [x for x in owners.read_text(encoding="utf-8").splitlines() if x.strip() and not x.lstrip().startswith("#")]
         if not lines or not any("@" in x for x in lines):
             errors.append("CODEOWNERS needs at least one real path-to-owner rule.")
-    if security.exists() and not changed_from_sandbox(unit, "SECURITY.md"):
+    if security.exists() and not changed_from_baseline(unit, "SECURITY.md"):
         errors.append("SECURITY.md must be created on the learner branch.")
-    if owners.exists() and not changed_from_sandbox(unit, ".github/CODEOWNERS"):
+    if owners.exists() and not changed_from_baseline(unit, ".github/CODEOWNERS"):
         errors.append("CODEOWNERS must be created on the learner branch.")
 
 
