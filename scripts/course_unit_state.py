@@ -10,6 +10,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 CURRICULUM = ROOT / "curriculum" / "official-curriculum.yml"
 CATALOG = ROOT / "curriculum" / "course-catalog.json"
+DETAILS = ROOT / "unit-details"
 
 # Modules without an explicit Microsoft exercise still receive a practical checkpoint.
 ACTIVITY_OVERRIDES = {
@@ -87,6 +88,16 @@ def extract_local_section(unit: Unit) -> str:
     return match.group(1).strip()
 
 
+def extract_detail_section(unit: Unit) -> str:
+    path = DETAILS / f"m{unit.module:02d}.md"
+    if not path.exists():
+        return ""
+    text = path.read_text(encoding="utf-8")
+    pattern = rf"(?ms)^## {re.escape(unit.id)}\s*$\n(.*?)(?=^## m\d{{2}}-u\d{{2}}\s*$|\Z)"
+    match = re.search(pattern, text)
+    return match.group(1).strip() if match else ""
+
+
 def learner_instruction(unit: Unit) -> str:
     if unit.mode in {"read", "summary"}:
         return (
@@ -112,10 +123,12 @@ def learner_instruction(unit: Unit) -> str:
 
 def render(unit: Unit) -> str:
     section = extract_local_section(unit)
+    detail = extract_detail_section(unit)
+    detail_block = f"\n\n### Source-audited detail\n\n{detail}" if detail else ""
     return (
         f"## {unit.id.upper()} — {unit.title}\n\n"
         f"**Official sequence:** Module {unit.module}, Unit {unit.number} · **Mode:** `{unit.mode}`\n\n"
-        f"{section}\n\n---\n\n{learner_instruction(unit)}\n"
+        f"{section}{detail_block}\n\n---\n\n{learner_instruction(unit)}\n"
     )
 
 
@@ -130,6 +143,7 @@ def as_dict(unit: Unit) -> dict[str, object]:
         "readme": unit.readme,
         "branch": unit.branch,
         "next": nxt.id if nxt else None,
+        "has_detail": bool(extract_detail_section(unit)),
     }
 
 
