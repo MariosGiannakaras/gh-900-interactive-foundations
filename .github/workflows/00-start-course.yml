@@ -11,9 +11,10 @@ permissions:
 
 jobs:
   start:
-    # The upstream/source repository must never create learner progress. A repository
-    # created from the template automatically runs this job on its initial main push.
-    if: github.repository != 'MariosGiannakaras/gh-900-interactive-foundations'
+    # Match GitHub Skills behavior: the template source itself stays inert, while a
+    # repository generated from the template starts automatically on its initial main push.
+    if: |
+      !github.event.repository.is_template
     runs-on: ubuntu-latest
     steps:
       - name: Check out learner repository

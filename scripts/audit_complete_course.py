@@ -90,6 +90,18 @@ def main() -> int:
         if not (ROOT / rel).exists():
             errors.append(f"runtime component missing: {rel}")
 
+    template_guard = "github.event.repository.is_template"
+    source_repo_literal = "MariosGiannakaras/gh-900-interactive-foundations"
+    for rel in [".github/workflows/00-start-course.yml", ".github/workflows/01-course-engine.yml"]:
+        path = ROOT / rel
+        if not path.exists():
+            continue
+        text = path.read_text(encoding="utf-8")
+        if template_guard not in text:
+            errors.append(f"{rel} must guard learner execution using repository template metadata")
+        if source_repo_literal in text:
+            errors.append(f"{rel} must not hard-code the upstream repository identity")
+
     if errors:
         return fail(errors)
 
@@ -99,7 +111,7 @@ def main() -> int:
     print("Official units mapped: 106/106")
     print("Interactive module packages: 16/16")
     print("Pinned Microsoft source lock: present")
-    print("Automatic Step 0 + unit-by-unit progression runtime: present")
+    print("Template-safe automatic Step 0 + unit-by-unit progression runtime: present")
     return 0
 
 
