@@ -13,19 +13,31 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 PR_MODULES = {2, 9, 14}
 
+
 def git(*args: str) -> subprocess.CompletedProcess[str]:
     return subprocess.run(["git", *args], cwd=ROOT, text=True, capture_output=True)
 
+
+def fetch_sandbox(unit: str) -> bool:
+    remote = f"refs/heads/sandbox/{unit}"
+    local = f"refs/remotes/origin/sandbox/{unit}"
+    return git("fetch", "origin", f"{remote}:{local}").returncode == 0
+
+
 def changed_from_sandbox(unit: str, rel: str) -> bool:
+    if not fetch_sandbox(unit):
+        return False
     sandbox = f"origin/sandbox/{unit}"
-    git("fetch", "origin", f"sandbox/{unit}")
     result = git("diff", "--quiet", f"{sandbox}...HEAD", "--", rel)
     return result.returncode == 1
 
+
 def learner_commit_count(unit: str) -> int:
-    git("fetch", "origin", f"sandbox/{unit}")
+    if not fetch_sandbox(unit):
+        return 0
     result = git("rev-list", "--count", f"origin/sandbox/{unit}..HEAD")
     return int(result.stdout.strip() or "0") if result.returncode == 0 else 0
+
 
 def require_changed(unit: str, rel: str, errors: list[str]) -> None:
     path = ROOT / rel
@@ -33,6 +45,7 @@ def require_changed(unit: str, rel: str, errors: list[str]) -> None:
         errors.append(f"Required exercise file is missing: {rel}")
     elif not changed_from_sandbox(unit, rel):
         errors.append(f"Make a real change to {rel} on the learner branch.")
+
 
 def validate_module1(unit: str, errors: list[str]) -> None:
     for rel in [
@@ -56,6 +69,7 @@ def validate_module1(unit: str, errors: list[str]) -> None:
     if merges.returncode == 0 and not merges.stdout.strip():
         errors.append("Create and merge the temporary practice branch so the merge is visible in history.")
 
+
 def validate_code_scanning(unit: str, errors: list[str]) -> None:
     rel = "exercise/code-scanning-simulation.yml"
     require_changed(unit, rel, errors)
@@ -75,6 +89,7 @@ def validate_code_scanning(unit: str, errors: list[str]) -> None:
         if not re.search(pattern, text):
             errors.append(f"Code-scanning exercise is missing: {label}.")
 
+
 def validate_copilot(unit: str, errors: list[str]) -> None:
     rel = "exercise/copilot-practice.py"
     require_changed(unit, rel, errors)
@@ -83,6 +98,7 @@ def validate_copilot(unit: str, errors: list[str]) -> None:
         text = path.read_text(encoding="utf-8")
         if "TODO" in text or "NotImplementedError" in text or len(text.strip()) < 180:
             errors.append("Complete the Python practice implementation and remove the TODO/NotImplementedError.")
+
 
 def validate_devcontainer(unit: str, errors: list[str]) -> None:
     rel = ".devcontainer/devcontainer.json"
@@ -101,6 +117,7 @@ def validate_devcontainer(unit: str, errors: list[str]) -> None:
         errors.append("devcontainer.json needs a descriptive name.")
     if not any(k in data for k in ("customizations", "features", "postCreateCommand", "forwardPorts")):
         errors.append("Make at least one meaningful dev-container customization.")
+
 
 def validate_markdown(unit: str, errors: list[str]) -> None:
     rel = "exercise/markdown-practice.md"
@@ -122,6 +139,7 @@ def validate_markdown(unit: str, errors: list[str]) -> None:
     for label, ok in checks.items():
         if not ok:
             errors.append(f"Markdown exercise is missing: {label}.")
+
 
 def validate_innersource(unit: str, errors: list[str]) -> None:
     rel = "exercise/innersource-program.md"
@@ -145,6 +163,7 @@ def validate_innersource(unit: str, errors: list[str]) -> None:
         if not any(t in text for t in terms):
             errors.append(f"InnerSource artifact must address {label}.")
 
+
 def validate_security(unit: str, errors: list[str]) -> None:
     security = ROOT / "SECURITY.md"
     owners = ROOT / ".github/CODEOWNERS"
@@ -165,6 +184,7 @@ def validate_security(unit: str, errors: list[str]) -> None:
     if owners.exists() and not changed_from_sandbox(unit, ".github/CODEOWNERS"):
         errors.append("CODEOWNERS must be created on the learner branch.")
 
+
 def gh_json(args: list[str]) -> object | None:
     if not os.environ.get("GITHUB_ACTIONS") or not shutil.which("gh"):
         return None
@@ -175,6 +195,7 @@ def gh_json(args: list[str]) -> object | None:
         return json.loads(result.stdout)
     except json.JSONDecodeError:
         return None
+
 
 def validate_pr_activity(unit: str, module: int, errors: list[str]) -> None:
     rel = {
@@ -209,12 +230,14 @@ def validate_pr_activity(unit: str, module: int, errors: list[str]) -> None:
             if not any(re.search(rf"(?<!\d)#{re.escape(n)}(?!\d)", body) for n in nums):
                 errors.append("The Module 14 PR body must reference the exercise Issue number.")
 
+
 def validate_history(unit: str, errors: list[str]) -> None:
     rel = "exercise/history-practice.txt"
     require_changed(unit, rel, errors)
     if learner_commit_count(unit) < 2:
         errors.append("Create at least two learner commits for the history exercise.")
     tag = f"gh900-{unit}"
+    git("fetch", "origin", f"refs/tags/{tag}:refs/tags/{tag}")
     ref = git("rev-parse", "--verify", f"refs/tags/{tag}")
     if ref.returncode != 0:
         errors.append(f"Create tag {tag} and push it before running /check.")
@@ -222,6 +245,7 @@ def validate_history(unit: str, errors: list[str]) -> None:
         ancestor = git("merge-base", "--is-ancestor", ref.stdout.strip(), "HEAD")
         if ancestor.returncode != 0:
             errors.append(f"Tag {tag} must point to a commit in the learner branch history.")
+
 
 def validate_python(unit: str, errors: list[str]) -> None:
     for rel in ("exercise/app.py", "exercise/test_app.py"):
@@ -235,6 +259,7 @@ def validate_python(unit: str, errors: list[str]) -> None:
     result = subprocess.run([sys.executable, "test_app.py"], cwd=ROOT / "exercise", text=True, capture_output=True)
     if result.returncode != 0:
         errors.append("Python tests are not passing yet.")
+
 
 def validate(unit: str) -> list[str]:
     module = int(unit[1:3])
@@ -264,6 +289,7 @@ def validate(unit: str) -> list[str]:
             errors.append("Make and push at least one meaningful learner commit for this exercise.")
     return errors
 
+
 def main() -> int:
     p = argparse.ArgumentParser()
     p.add_argument("--unit", required=True)
@@ -274,6 +300,7 @@ def main() -> int:
         return 1
     print(f"{args.unit} hands-on checkpoint passed.")
     return 0
+
 
 if __name__ == "__main__":
     raise SystemExit(main())
