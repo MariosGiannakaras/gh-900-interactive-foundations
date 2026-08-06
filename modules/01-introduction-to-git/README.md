@@ -2,20 +2,27 @@
 
 Official Microsoft Learn module: <https://learn.microsoft.com/en-us/training/modules/intro-to-git/>
 
-This module maps **1:1 to all 6 official units**. The explanations below are original wording; the practical layer adds a GitHub-hosted exercise that validates repository state as you work.
+Official hands-on exercise linked by Microsoft Learn: <https://github.com/skills/introduction-to-git>
+
+This module maps **1:1 to all 6 Microsoft Learn units** and also preserves the concepts and activities taught by the linked official GitHub Skills exercise. The wording here is original; the practical work is adapted to this repository so progress can be validated automatically.
 
 ## Learning objectives
 
 By the end of this module you should be able to:
 
-- explain what version control is and why it is useful;
+- explain what version control is and the problems it solves;
 - distinguish centralized and distributed version control;
 - distinguish Git from GitHub;
-- use the core Git vocabulary correctly;
-- configure a Git identity and work with a Git repository;
-- stage, commit, and inspect changes;
-- use branches to isolate experimental work;
-- recognize the purpose of the most common basic Git commands.
+- use essential Git vocabulary correctly;
+- configure Git identity safely;
+- initialize or clone a repository;
+- work with the working directory, staging area, and repository history;
+- stage and commit changes with useful messages;
+- inspect history and temporarily view older states;
+- compare working, staged, and committed states with diffs;
+- create, switch, merge, and delete branches;
+- distinguish fast-forward, merge-commit, and squash merge strategies;
+- recognize basic collaboration concepts such as clone, push, pull, and pull request.
 
 ---
 
@@ -23,11 +30,13 @@ By the end of this module you should be able to:
 
 Official unit: <https://learn.microsoft.com/en-us/training/modules/intro-to-git/0-introduction>
 
-Git is a version-control system used to record changes to files over time. Although it is strongly associated with software development, the same model works for documentation, configuration, data files, and other text-based projects.
+Git is a version-control system used to record changes to files over time. Although most examples involve source code, version control also works for documentation, configuration, tutorials, and other projects whose files benefit from history and collaboration.
 
-The important mental model for this module is that Git lets you create a reliable history of a project, inspect that history, work on changes independently, and combine selected work later.
+The module's core mental model is that Git lets you build a reliable history, inspect or recover earlier states, experiment without immediately disturbing trusted work, compare changes before saving them, and combine selected work later.
 
-In the interactive lab you will use this repository itself as the project. You will work on a dedicated branch, make multiple commits, inspect history from a terminal, and let GitHub Actions validate the observable repository state.
+The official exercise assumes Git is already installed. If you need Git on your own computer, use the installation guidance at <https://git-scm.com/> rather than relying on a platform-specific shortcut.
+
+Our interactive lab can be completed in a GitHub Codespace or a local clone. Codespaces provides Git and VS Code in a browser, while a local clone lets you use the same Git commands on your own machine.
 
 ---
 
@@ -35,98 +44,118 @@ In the interactive lab you will use this repository itself as the project. You w
 
 Official unit: <https://learn.microsoft.com/en-us/training/modules/intro-to-git/1-what-is-vc>
 
-### Version control systems
+### What a VCS solves
 
-A **version control system (VCS)** tracks changes to a set of files. It gives a project a history instead of leaving you with unrelated copies such as `final`, `final-2`, and `really-final`.
+A **version control system (VCS)** tracks changes to a set of files. It replaces fragile practices such as duplicated folders, emailed copies, manually numbered ZIP files, or a single shared file that becomes locked while somebody else edits it.
 
-Typical capabilities include:
+The official material highlights problems such as:
 
-- identifying what changed;
-- identifying who made a change and when;
-- attaching an explanation to a saved change;
-- restoring an earlier version of one file or the whole project;
-- creating isolated lines of development with branches;
-- combining selected branch changes later;
-- marking significant versions with tags, such as a release.
+- backup and recovery;
+- safe/sandboxed experimentation;
+- parallel development;
+- locked files;
+- duplicate copies;
+- conflicting changes;
+- team collaboration.
 
-Version control is one practice within the broader discipline of **software configuration management (SCM)**. The terms are sometimes used loosely as if they were identical, but SCM covers more than version history alone.
+With a VCS you can:
+
+- see what changed, when, and by whom;
+- attach a message explaining the reason for a change;
+- retrieve an earlier version of one file or an entire project;
+- use branches for isolated features, fixes, or experiments;
+- merge selected branch work later;
+- attach tags to important versions, such as releases.
+
+Version control is one practice within **software configuration management (SCM)**. The terms are sometimes used loosely as synonyms, but SCM is broader than version history alone. Git's official documentation is hosted at `git-scm.com`.
 
 ### Centralized vs distributed version control
 
-A centralized VCS stores authoritative history primarily on a central server. Examples historically include CVS, Subversion (SVN), and Perforce. Centralization can make the server a critical dependency.
+Centralized systems such as CVS, Subversion (SVN), and Perforce traditionally rely on a central server for project history. That architecture can make the server a critical dependency or single point of failure.
 
-Git is a **distributed version control system (DVCS)**. A normal Git clone contains project history locally, not just the current files. This means you can inspect history and create local commits without a network connection, then synchronize with another repository later.
+Git is a **distributed version control system (DVCS)**. A normal clone contains repository history locally. You can therefore inspect history, compare versions, create commits, and perform many other operations without a network connection. Changes can later be synchronized with another repository. A Git repository can technically be shared by many mechanisms; in modern practice teams normally use a hosted remote service.
 
-Hosted services are still extremely useful, but Git itself does not require a permanent central server to record local history.
+Distributed copies also improve resilience and allow developers to choose workflows and tools that suit their work.
 
 ### Git
 
-Git is a free and open-source distributed VCS created originally by Linus Torvalds. It is designed to be fast and scalable and is now used for projects of many sizes.
+Git is a fast, scalable, free, open-source DVCS originally created by Linus Torvalds, who also created Linux.
 
 ### Core terminology
 
-#### Working tree
+#### Working tree / working directory
 
-The project directories and files you are actively editing.
+The directories and files currently checked out for you to edit.
 
 #### Repository
 
-The Git data store that holds history and metadata. In a normal working repository, Git stores this information under the hidden `.git` directory at the root of the working tree.
+The Git data store containing project history and metadata. In a normal working repository, Git stores its internal data in the hidden `.git` directory at the top of the working tree.
 
-A **bare repository** has repository data but no checked-out working tree. Bare repositories are commonly useful as shared or backup repositories.
+A **bare repository** contains repository data but no checked-out working tree. Bare repositories are useful for sharing or backup.
+
+#### Staging area / index
+
+A preparation area between your working files and the next commit. Staging allows you to choose exactly which current changes will become part of the next saved snapshot.
 
 #### Hash
 
-Git identifies content and objects with cryptographic hashes. Historically Git uses SHA-1 object identifiers; modern Git also supports SHA-256 repositories. Because object identity derives from content, Git can determine whether content changed independently of a file's ordinary timestamp.
+Git identifies objects using cryptographic hashes. Git traditionally uses SHA-1 identifiers; modern Git also supports SHA-256 repositories. Because identity comes from content, a timestamp change alone does not imply that Git file content changed.
 
 #### Git objects
 
-The object model is important even at a foundational level:
+A repository contains four fundamental object types:
 
-- **blob** — stores file content;
-- **tree** — represents a directory structure and points to names, permissions, and other objects;
-- **commit** — represents a saved project state and connects history through parent commits;
-- **annotated tag** — an object containing tag metadata that usually points to a commit.
+- **blob** — file content;
+- **tree** — directory structure, including names, permissions, and object references;
+- **commit** — a saved project state plus history metadata and parent links;
+- **annotated tag** — tag metadata that normally points to a commit.
 
-Git also supports **lightweight tags**, which are references rather than full tag objects.
+Git also has **lightweight tags**, which are references rather than separate tag objects.
 
 #### Commit
 
-As a verb, **commit** means recording staged work as a new saved point in repository history. As a noun, a **commit** is that recorded history object.
+As a verb, committing means recording staged work in history. As a noun, a commit is that recorded history object.
 
-A commit records metadata such as author identity, time, commit message, the project snapshot reference, and parent commit information. It can also contain a digital signature.
+Commit metadata can include the author name/email, timestamp, commit message, optional digital signature, reference to the saved project state, and parent commit or commits.
 
-#### Branch, head, and HEAD
+Good commit messages are concise but descriptive. Generic messages make history harder to understand and make later debugging harder.
 
-A **branch** is a named line of commits. Its newest commit is the branch's **head**.
+#### Branch, head, and `HEAD`
 
-`HEAD` is Git's reference to the currently checked-out position, normally the current branch. On GitHub, new repositories normally use `main` as the default branch unless configured otherwise.
+A **branch** is a lightweight named pointer associated with a line of linked commits. The newest commit on a branch is its **head**.
 
-Branches let separate changes proceed without immediately modifying the default branch.
+`HEAD` identifies your current position in repository history, normally the currently checked-out branch. GitHub normally uses `main` as the default branch name for new repositories; older repositories and documentation may use the historical name `master`.
 
-#### Remote and origin
+A feature branch gives you an isolated place to develop without immediately changing the trusted default branch.
 
-A **remote** is a named reference to another Git repository. After `git clone`, Git normally creates a remote named `origin` that points back to the repository you cloned.
+#### Remote and `origin`
 
-#### Command, subcommand, option
+A **remote** is a named reference to another Git repository. After `git clone`, Git normally creates a remote called `origin` that points back to the repository you cloned.
 
-In `git status`, `git` is the command and `status` is the subcommand. Options modify behavior, for example `git reset --hard`.
+#### Commands, subcommands, and options
 
-### Git command line vs graphical tools
+In `git status`, `git` is the command and `status` is the subcommand. Options change behavior, for example `git merge --no-ff` or `git reset --hard`.
 
-Git can be used through graphical interfaces such as GitHub Desktop and through editor integrations such as Visual Studio Code. These tools can simplify routine work, but the Git command-line interface exposes the broadest set of Git capabilities and is consistent across operating systems.
+### Ways to use Git
 
-For this reason, this module deliberately uses basic CLI commands even though later course modules also cover GitHub's graphical and web interfaces.
+The official exercise demonstrates that Git can be accessed through several categories of tooling:
+
+- **CLI** — the original interface and the route to Git's full command set;
+- **code editors/IDEs** — for example VS Code, JetBrains IDEs, Xcode, Emacs, and Vim;
+- **Git hosting services** — for example GitHub, GitLab, Gitea, Azure DevOps, AWS CodeCommit, and Bitbucket;
+- **desktop Git clients** — for example GitHub Desktop, Sourcetree, TortoiseGit, GitKraken, and GitButler.
+
+Graphical tools are useful, but they differ in features and limitations. The command line remains important because it exposes Git operations consistently across operating systems and helps when a GUI cannot express or recover from a particular state.
 
 ### Git vs GitHub
 
-**Git** is the distributed version-control technology.
+**Git** is the distributed version-control system.
 
-**GitHub** is a platform built around Git that hosts repositories and adds collaboration, automation, project-management, AI, and community features.
+**GitHub** is a platform built around Git that hosts repositories and adds collaboration, automation, project-management, AI, and community capabilities.
 
-Examples of GitHub platform features include Issues, Discussions, Pull Requests, Notifications, Labels, Actions, Forks, Projects, Copilot, and Codespaces.
+GitHub features include Issues, Discussions, Pull Requests, Notifications, Labels, Actions, Forks, Projects, Copilot, and Codespaces.
 
-Git can exist without GitHub. GitHub repositories use Git for version history but provide much more than Git alone.
+Git works without GitHub. GitHub uses Git as its version-history foundation but adds much more than Git alone.
 
 ---
 
@@ -134,75 +163,211 @@ Git can exist without GitHub. GitHub repositories use Git for version history bu
 
 Official unit: <https://learn.microsoft.com/en-us/training/modules/intro-to-git/2-exercise-configure-git>
 
-The official exercise checks version-control concepts, identity configuration, repository creation and commits, history, branches, and basic collaboration. Our exercise preserves those objectives while using this course repository as the managed training environment.
+The Microsoft Learn page sends learners to the official GitHub Skills **Introduction to Git** exercise. That exercise is part of our coverage target, not an optional extra.
 
-### Interactive lab objectives
+### A. Verify Git and open help
 
-You will:
-
-1. create the required training branch;
-2. open a GitHub Codespace or use a local clone;
-3. inspect and, if necessary, configure your Git identity;
-4. inspect repository status;
-5. edit the lab file;
-6. stage the file;
-7. create a commit with a meaningful message;
-8. inspect commit history;
-9. make a second change and commit so history contains multiple snapshots;
-10. push the branch so GitHub Actions can validate the result;
-11. complete an original knowledge check covering the same learning objectives.
-
-### Identity configuration
-
-Inspect the identity Git will attach to commits:
+In the terminal:
 
 ```bash
-git config user.name
-git config user.email
+git --version
+git --help
 ```
 
-If the values are not set for this repository, set them locally:
+The first confirms Git is installed. The second opens general help. A subcommand's detailed help is available through `git <subcommand> --help`.
+
+### B. Configure your Git identity
+
+Git stores author identity in commits, and that information is visible to anyone who can view the repository history. GitHub offers a `noreply` email option if you do not want a personal email address exposed in commits.
+
+The official exercise demonstrates global configuration:
 
 ```bash
-git config user.name "Your Name"
-git config user.email "your-email@example.com"
+git config --global user.name "Your Name"
+git config --global user.email "your-address-or-noreply-address"
+git config --global --list
 ```
 
-`--global` stores a value in your user-level Git configuration and therefore affects other repositories for that user. For a disposable training environment, repository-local configuration is sufficient and avoids unintentionally changing unrelated repositories.
+Global settings affect repositories for that user. You can instead use repository-local configuration for a particular project:
 
-### Repository creation vs cloning
+```bash
+git config --local user.name "Your Name"
+git config --local user.email "your-address-or-noreply-address"
+```
 
-A new local Git repository can be created with:
+Our lab recommends local settings so the training exercise does not unintentionally change unrelated repositories.
+
+### C. Create vs clone a repository
+
+To turn an ordinary directory into a new Git repository:
 
 ```bash
 git init
 ```
 
-For this course, you are already working with an existing GitHub repository, so you normally **clone** it or open it in Codespaces instead of running `git init` inside it.
-
-A local clone can be created with:
+To obtain an existing repository and its history:
 
 ```bash
 git clone <repository-url>
 ```
 
-A clone normally creates the `origin` remote automatically.
+Because this course already exists on GitHub, you normally clone it or open it in Codespaces rather than running `git init` inside the existing repository.
 
-### Branch work
+### D. The basic Git workflow
 
-The automated course will ask you to create:
+The three core areas are:
 
 ```text
-lab/module-01-git
+Working directory  --git add-->  Staging area/index  --git commit-->  Repository history
 ```
 
-From a terminal, a typical equivalent is:
+`git checkout` (and newer commands such as `git switch`/`git restore` for more specific tasks) can change what is checked out into the working tree.
+
+Typical first-repository sequence:
 
 ```bash
-git switch -c lab/module-01-git
+git init
+git status
+git add <file-or-path>
+git status
+git commit -m "Initial commit"
+git status
 ```
 
-`git switch` changes the checked-out branch. `-c` creates the named branch first.
+Before the first commit, status can report that there are no commits yet. After staging new files, status identifies them as new files. After committing all current work, status can report a **clean working tree**, meaning the checked-out files match the recorded/staged state with no pending changes.
+
+You can stage several explicit files or use a path pattern when appropriate. If you staged something by mistake, remove it from the staging area without discarding the working-file edit using:
+
+```bash
+git restore --staged <filename>
+```
+
+VS Code's **Source Control** view exposes the same basic states: Changes, Staged Changes, commit messages, commit actions, and history/graph views.
+
+### E. Explore history
+
+Important commit information includes:
+
+- unique commit hash/ID;
+- parent commit reference(s);
+- author information;
+- timestamp;
+- commit message.
+
+Useful commands:
+
+```bash
+git log
+git log --oneline
+git log --graph --oneline
+git log --all --graph --oneline
+```
+
+You can temporarily inspect an older commit:
+
+```bash
+git checkout <commit-id>
+```
+
+Then return to your branch:
+
+```bash
+git checkout <branch-name>
+```
+
+Checking out a commit directly places you at that historical position rather than on the normal tip of a branch. For this learning exercise, inspect the state and then return to your branch before continuing work.
+
+VS Code can also display a source-control graph. Expanding a commit shows which files changed in that commit.
+
+### F. Compare changes with diffs
+
+Diff output typically marks added lines with `+` and removed lines with `-` and commonly uses green/red coloring.
+
+The official exercise distinguishes three comparisons:
+
+```bash
+git diff                 # working directory vs staging area
+git diff --staged        # staging area vs last commit
+git diff HEAD~1          # current commit vs its previous commit
+```
+
+A path can be supplied to narrow the comparison.
+
+After you stage a working-file change, plain `git diff` can become empty because the working version now matches the staging area; `git diff --staged` then shows what is prepared for the next commit.
+
+Git diff colors can be configured. The official exercise gives examples such as:
+
+```bash
+git config --global color.diff.old yellow
+git config --global color.diff.new blue
+```
+
+VS Code provides a graphical diff view for both unstaged and staged changes. The working-file side can be edited; a staged snapshot represents what is currently prepared for commit.
+
+If Git opens long output in a pager, `q` exits the pager.
+
+### G. Work with branches
+
+Branches are lightweight pointers that support safe parallel work.
+
+Common branch commands demonstrated in the official exercise include:
+
+```bash
+git branch <new-branch>
+git checkout <branch>
+git branch --list
+git merge <branch>
+git branch --delete <branch>
+```
+
+Git 2.23 introduced `git switch` as a clearer command for switching and creating branches:
+
+```bash
+git switch --create <new-branch>
+git switch <branch>
+```
+
+A branch can be renamed if necessary:
+
+```bash
+git branch --move old-name new-name
+```
+
+Deleting a merged branch name removes the pointer used to reference that branch; it does not magically erase commits that remain reachable through merged history.
+
+### H. Merge strategies you must distinguish
+
+#### Fast-forward
+
+If the target branch has not diverged, Git can simply advance its branch pointer to the newer commit. No separate merge commit is required.
+
+#### Merge commit
+
+Git can preserve the two-parent relationship by creating a new merge commit. The official exercise deliberately demonstrates a non-fast-forward merge:
+
+```bash
+git merge --no-ff <feature-branch> -m "Merge message"
+```
+
+This makes the branch structure visible in history.
+
+#### Squash merge
+
+A squash takes the net changes from a branch and records them as one new commit on the target branch rather than preserving each branch commit as part of the target branch's history.
+
+These strategies trade off history shape, traceability, and compactness. Later GitHub modules revisit merging in pull-request workflows.
+
+### I. Collaboration concepts
+
+A common collaboration sequence is:
+
+1. **clone** a repository to obtain a local copy and history;
+2. create branches and make commits locally;
+3. **push** commits/branches to a remote repository others can access;
+4. obtain and integrate shared work from a remote, commonly using **pull**;
+5. use a **pull request** to propose that another repository/branch review and integrate your work.
+
+Git is distributed, so collaboration means synchronizing work between repository copies. Git hosting platforms make that synchronization and review much easier.
 
 ---
 
@@ -210,11 +375,7 @@ git switch -c lab/module-01-git
 
 Official unit: <https://learn.microsoft.com/en-us/training/modules/intro-to-git/3-basic-git-commands>
 
-A useful model is:
-
-**working tree → staging area → commit history**
-
-You edit in the working tree, select the content intended for the next commit by staging it, then save that staged state as a commit.
+The Microsoft unit specifically emphasizes these commands:
 
 ### `git status`
 
@@ -222,7 +383,7 @@ You edit in the working tree, select the content intended for the next commit by
 git status
 ```
 
-Shows the state of the working tree and staging area. It helps distinguish untracked, modified, and staged changes and usually tells you what Git expects next.
+Shows the state of the working tree and staging area, including untracked, modified, and staged content.
 
 ### `git add`
 
@@ -230,9 +391,7 @@ Shows the state of the working tree and staging area. It helps distinguish untra
 git add <path>
 ```
 
-Places the current content for the chosen path into the **staging area** (also called the index). Staging does not create a commit. It selects content for a future commit.
-
-The same command is used both for newly tracked files and for later modifications to already tracked files.
+Places the selected current content into the staging area. It is used both for newly tracked files and later modifications.
 
 ### `git commit`
 
@@ -240,7 +399,7 @@ The same command is used both for newly tracked files and for later modification
 git commit -m "Describe the change"
 ```
 
-Creates a new commit from the staged content. A useful commit message explains the intent of the saved change rather than merely restating a filename.
+Creates a new commit from staged content. A commit includes the saved project state plus metadata such as author, email, timestamp, message, optional signature, and parent reference(s).
 
 ### `git log`
 
@@ -248,41 +407,33 @@ Creates a new commit from the staged content. A useful commit message explains t
 git log
 ```
 
-Displays commit history, including information such as commit identifiers, authorship, timestamps, and messages.
-
-For a compact graph view you can also experiment with:
-
-```bash
-git log --oneline --graph --decorate
-```
+Displays previous commits and their metadata. Useful variants include `--oneline`, `--graph`, `--all`, and `--decorate`.
 
 ### `git help`
 
 ```bash
 git help
-```
-
-Provides Git help. A specific command's manual can be requested with:
-
-```bash
 git <subcommand> --help
 ```
 
-For example:
+Provides general or command-specific documentation.
 
-```bash
-git commit --help
-```
+### Other commands explicitly exercised by the linked official lab
 
-### Synchronization commands you should recognize
+You must also recognize and use:
 
-Although the official basic-command unit focuses on status/add/commit/log/help, the surrounding version-control vocabulary expects you to recognize these terms:
-
-- `git push` sends local refs/commits to a remote repository;
-- `git pull` integrates changes obtained from a remote tracking branch;
-- `git fetch` downloads remote refs/objects without automatically integrating them into your current branch.
-
-Detailed collaboration behavior is covered later in the course.
+- `git --version`
+- `git config`
+- `git init`
+- `git clone`
+- `git checkout`
+- `git diff`
+- `git restore --staged`
+- `git branch`
+- `git switch`
+- `git merge`
+- `git push`
+- `git pull`
 
 ---
 
@@ -290,16 +441,18 @@ Detailed collaboration behavior is covered later in the course.
 
 Official unit: <https://learn.microsoft.com/en-us/training/modules/intro-to-git/4-knowledge-check>
 
-The repository uses **original questions**, not copied Microsoft Learn assessment items. The assessment checks the same knowledge areas:
+This repository uses **original questions**, not copied Microsoft Learn assessment items. The assessment covers the same measured knowledge plus the concepts that appear in the linked official hands-on exercise:
 
-- appropriate use cases for version control;
-- relationship between VCS and SCM terminology;
+- version-control use cases and SCM terminology;
+- distributed vs centralized version control;
 - Git vs GitHub;
-- basic command purposes;
-- distributed version-control behavior;
-- working tree, staging area, commit, branch, remote, and `HEAD`.
+- working directory, staging area, repository, commit, branch, remote, and `HEAD`;
+- command purposes;
+- diff states;
+- branch/merge concepts;
+- clone/push/pull/pull-request collaboration vocabulary.
 
-The interactive workflow will not reveal the answer key before you submit the assessment.
+The answer key is not displayed before submission.
 
 ---
 
@@ -307,33 +460,42 @@ The interactive workflow will not reveal the answer key before you submit the as
 
 Official unit: <https://learn.microsoft.com/en-us/training/modules/intro-to-git/5-summary>
 
-After completing the module, you should be able to explain and demonstrate:
+After completion you should be able to explain and demonstrate:
 
-- what a VCS provides;
+- the purpose and benefits of version control;
 - why Git is distributed;
-- essential Git terminology;
-- the distinction between Git and GitHub;
-- Git identity configuration;
-- the working-tree/staging/commit model;
-- `git status`, `git add`, `git commit`, `git log`, and `git help`;
-- basic branch-based isolation of work.
+- Git terminology and object/history concepts;
+- the difference between Git and GitHub;
+- Git identity configuration and privacy considerations;
+- repository creation vs cloning;
+- working-directory → staging → commit workflow;
+- status, add, commit, log, help, checkout, diff, branch, switch, merge, push, and pull basics;
+- history inspection and temporary historical checkout;
+- unstaged vs staged diffs;
+- safe branch experimentation;
+- fast-forward, merge-commit, and squash concepts;
+- basic remote collaboration.
 
-### Further official references
+### Official/primary references
 
-- Git documentation: <https://git-scm.com/doc>
-- GitHub Git learning resources: <https://docs.github.com/en/get-started/using-git/about-git>
 - Microsoft Learn module: <https://learn.microsoft.com/en-us/training/modules/intro-to-git/>
+- Official linked GitHub exercise: <https://github.com/skills/introduction-to-git>
+- Git documentation: <https://git-scm.com/doc>
+- GitHub Git documentation: <https://docs.github.com/en/get-started/using-git/about-git>
 
 ---
 
 ## Interactive course flow
 
-When the course workflow is active, the course issue guides you through these validated checkpoints:
+The Actions-driven course issue guides you through durable checkpoints while also requiring terminal actions that cannot be observed remotely:
 
-1. **Create branch** `lab/module-01-git`.
-2. **First snapshot**: edit `labs/module-01/version-control-notes.md`, stage it, commit, and push.
-3. **History checkpoint**: make a second meaningful commit to the same file and push it.
-4. **Assessment**: complete `labs/module-01/assessment.md` without changing the question text.
-5. **Completion**: automatic validation records Module 1 as completed and points to Module 2.
+1. Create `lab/module-01-git`.
+2. Verify Git, inspect/configure identity, use status/add/commit, and create the first lab snapshot.
+3. Inspect history with several `git log` forms and temporarily checkout an earlier state before returning to the lab branch.
+4. Practice `git diff`, `git diff --staged`, and create another commit.
+5. Create a feature branch, make feature work, merge it back with a visible merge commit, inspect the graph, and delete the temporary branch pointer.
+6. Review clone/push/pull/pull-request collaboration concepts.
+7. Complete the original assessment without an exposed answer key.
+8. Read the summary and close the module.
 
-Not every terminal command can be observed remotely by GitHub Actions (for example, simply running `git help`). Those commands remain required hands-on steps, while the validator checks the durable repository evidence that can be verified safely.
+GitHub Actions validates durable repository evidence. Commands that only display information, such as opening `git help` or inspecting `git log`, cannot be proven remotely without intrusive telemetry, so they remain explicit required steps rather than pretending they were automatically verified.
