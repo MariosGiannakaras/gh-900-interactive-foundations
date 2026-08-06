@@ -61,10 +61,9 @@ def main() -> int:
         if "Official Microsoft Learn module:" not in text:
             errors.append(f"Module {key} README lacks official-source traceability")
 
+        required = [ROOT / f"labs/module-{key}/submission.md"]
         if n == 1:
-            required = [ROOT / "labs/module-01/assessment.md"]
-        else:
-            required = [ROOT / f"labs/module-{key}/submission.md"]
+            required.append(ROOT / "labs/module-01/assessment.md")
         for path in required:
             if not path.exists():
                 errors.append(f"Module {key} interactive artifact missing: {path.relative_to(ROOT)}")
@@ -79,6 +78,7 @@ def main() -> int:
         ".github/workflows/00-start-course.yml",
         ".github/workflows/01-course-engine.yml",
         "scripts/course_unit_state.py",
+        "scripts/test_course_runtime.py",
         "scripts/validate_unit_activity.py",
         "scripts/validate_module_01.py",
         "scripts/validate_course_module.py",
