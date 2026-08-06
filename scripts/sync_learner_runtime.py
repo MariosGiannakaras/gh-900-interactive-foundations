@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import argparse
-import filecmp
 import json
 import shutil
 from pathlib import Path
@@ -20,6 +19,11 @@ def catalogs() -> tuple[dict[str, dict[str, object]], dict[str, dict[str, object
     )
 
 
+def source_detail(key: str) -> Path | None:
+    path = ROOT / "unit-details" / f"m{key}.md"
+    return path if path.exists() else None
+
+
 def copy_file(src: Path, dst: Path) -> None:
     dst.parent.mkdir(parents=True, exist_ok=True)
     shutil.copy2(src, dst)
@@ -32,10 +36,10 @@ def sync_write() -> None:
         src_item = source[key]
         run_item = runtime[key]
         copy_file(ROOT / str(src_item["readme"]), ROOT / str(run_item["readme"]))
-        src_detail = src_item.get("detail")
+        src_detail = source_detail(key)
         run_detail = run_item.get("detail")
         if src_detail and run_detail:
-            copy_file(ROOT / str(src_detail), ROOT / str(run_detail))
+            copy_file(src_detail, ROOT / str(run_detail))
 
     for name in ["official-curriculum.yml", "assessment-hashes.json", "microsoft-source-lock.json"]:
         copy_file(ROOT / "curriculum" / name, RUNTIME / "data" / name)
@@ -44,8 +48,6 @@ def sync_write() -> None:
     if runtime_labs.exists():
         shutil.rmtree(runtime_labs)
     shutil.copytree(ROOT / "labs", runtime_labs)
-    # Module 1 runtime uses assessment.md + direct fixture files. Its old combined
-    # submission worksheet is not required by runtime v2.
     unused = runtime_labs / "module-01" / "submission.md"
     if unused.exists():
         unused.unlink()
@@ -82,12 +84,13 @@ def check() -> list[str]:
         if not same_file(src_readme, run_readme):
             errors.append(f"Module {key} packaged lesson is out of sync with {src_readme.relative_to(ROOT)}")
 
-        src_detail = src_item.get("detail")
-        run_detail = run_item.get("detail")
+        src_detail = source_detail(key)
+        run_detail_raw = run_item.get("detail")
+        run_detail = ROOT / str(run_detail_raw) if run_detail_raw else None
         if bool(src_detail) != bool(run_detail):
             errors.append(f"Module {key} source/runtime detail mapping differs")
-        elif src_detail and run_detail and not same_file(ROOT / str(src_detail), ROOT / str(run_detail)):
-            errors.append(f"Module {key} packaged detail is out of sync")
+        elif src_detail and run_detail and not same_file(src_detail, run_detail):
+            errors.append(f"Module {key} packaged detail is out of sync with {src_detail.relative_to(ROOT)}")
 
     for name in ["official-curriculum.yml", "assessment-hashes.json", "microsoft-source-lock.json"]:
         if not same_file(ROOT / "curriculum" / name, RUNTIME / "data" / name):
