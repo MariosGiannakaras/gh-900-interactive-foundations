@@ -116,9 +116,6 @@ def extract_local_section(unit: Unit) -> str:
     if not match:
         raise RuntimeError(f"No learner content found for {unit.id}")
     section = match.group(1).strip()
-    # Legacy pre-v2 module files sometimes appended a module-level lab/simulation after
-    # the final Summary without a separator. Those blocks are not part of the official
-    # unit and must never leak into the Issue-first v2 learner instructions.
     section = re.split(
         r"(?mi)^## (?:Interactive(?:\s+course\s+flow|\s+lab(?:\s*/\s*enterprise\s+simulation)?|\s+identity\s+simulation)?|Hands-on/simulation layer)\s*$",
         section,
@@ -301,16 +298,16 @@ Commit and push the completed InnerSource toolkit. Every artifact is temporary a
 7. Post **`/reflection ...`** comparing merge commit, squash, and rebase implications for history.
 8. Merge the temporary training PR using an allowed merge method. The course records draft/ready transitions and cleans the branches afterward."""
     if m == 15:
-        return """This unit is an investigation rather than a file-writing exercise. The course has prepared a temporary regression Issue and a related merged PR/commit history.
+        return f"""This unit is a history investigation. The course has prepared a regression Issue and a fixture branch, while **you** create the temporary PR so the repository can keep GitHub Actions on secure defaults.
 
 1. Open the temporary Module 15 regression Issue.
-2. Use GitHub global/context search to locate the related closed/merged PR and commit.
-3. Open **Blame** for `exercise/history-fixture.txt` on the temporary learner branch and identify the commit that introduced the regression marker.
-4. Follow references between the Issue, PR and commit.
-5. Apply the prepared `gh900-history` label and the prepared Module 15 milestone to the Issue.
-6. Assign the Issue to yourself.
-7. Add an Issue comment containing an `@mention`, the related PR reference, and the relevant commit SHA.
-8. Back in the course Issue, submit **`/investigation issue=#N pr=#N commit=<sha> explanation=<what the linked history tells you>`**.
+2. Create a Pull Request titled **`[GH-900 {unit.id}] History fixture PR`** from **`fixture/{unit.id}`** into **`{unit.sandbox}`** and link the regression Issue.
+3. Inspect the PR's **Commits** and **Files changed**, then merge it. Note the regression commit SHA shown in the PR before moving on.
+4. Use GitHub search to locate the now-merged PR, the regression commit, and the related Issue from repository context.
+5. Open **Blame** for `exercise/history-fixture.txt` on **`{unit.sandbox}`** and compare the commit/history shown there with the PR history (merge method can affect the visible target-branch commit).
+6. Apply the prepared `gh900-history` label and the prepared Module 15 milestone to the regression Issue, and assign the Issue to yourself.
+7. Add an Issue comment containing an `@mention`, the historical PR reference, and the regression commit SHA from the PR.
+8. Back in the course Issue, submit **`/investigation issue=#N pr=#N commit=<regression-commit-sha> explanation=<what the linked history tells you>`**.
 9. Comment `/check` when the investigation and Issue metadata are complete."""
     if m == 16:
         return """Update the supplied FastAPI exercise while preserving the independently written implementation target:
@@ -407,8 +404,6 @@ def _modernize_section(unit: Unit, section: str) -> str:
         section = section.replace("against `main`", f"against `{unit.sandbox}`")
         section = section.replace("into `main`", f"into `{unit.sandbox}`")
 
-    # Older source prose can describe the pre-v2 implementation. Keep its conceptual
-    # detail, but normalize obsolete operational wording before the canonical checklist.
     section = section.replace("Our integrated lab", "The interactive exercise")
     section = section.replace("Our integrated exercise", "The interactive exercise")
     section = section.replace("The integrated course", "The interactive exercise")
