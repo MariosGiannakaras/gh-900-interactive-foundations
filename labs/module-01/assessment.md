@@ -49,3 +49,51 @@ After cloning a repository, what is `origin` normally used for?
 - [ ] A. It is the name Git gives to the staging area.
 - [ ] B. It is the default remote name pointing back to the repository that was cloned.
 - [ ] C. It is the default name for the first commit.
+
+## Q7
+
+You edited a tracked file but have not staged the change. Which command normally shows the difference between your working copy and the staging area?
+
+- [ ] A. `git log --oneline`
+- [ ] B. `git diff`
+- [ ] C. `git branch --list`
+
+## Q8
+
+You staged a file and want to review exactly what is prepared for the next commit compared with the last commit. Which command is appropriate?
+
+- [ ] A. `git status --remote`
+- [ ] B. `git diff HEAD --working-tree`
+- [ ] C. `git diff --staged`
+
+## Q9
+
+What is a fast-forward merge?
+
+- [ ] A. The target branch pointer advances to commits already reachable through the source branch because the target has not diverged.
+- [ ] B. Every source commit is collapsed into one new commit by definition.
+- [ ] C. Git always creates a two-parent merge commit even when histories have not diverged.
+
+## Q10
+
+Why might someone deliberately use `git merge --no-ff <branch>` in a learning exercise?
+
+- [ ] A. To delete every commit made on the feature branch.
+- [ ] B. To force a merge commit so the branch convergence remains visible in history.
+- [ ] C. To prevent the target branch from receiving the feature changes.
+
+## Q11
+
+You accidentally staged a file but want to keep its working-directory edits. Which command is designed for that situation?
+
+- [ ] A. `git branch --delete <file>`
+- [ ] B. `git checkout --hard <file>`
+- [ ] C. `git restore --staged <file>`
+
+## Q12
+
+Which collaboration statement is correct?
+
+- [ ] A. `git push` publishes local refs/commits to a remote repository; a pull request is a proposal to review and integrate changes.
+- [ ] B. `git pull` publishes your local branch to a remote, while `git push` downloads somebody else's changes.
+- [ ] C. A pull request is required before Git can create any local commit.
