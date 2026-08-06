@@ -35,8 +35,27 @@ jobs:
           EVENT_NAME: ${{ github.event_name }}
           COMMENT_BODY: ${{ github.event.comment.body }}
           COMMENT_ISSUE: ${{ github.event.issue.number }}
+          COMMENT_AUTHOR_TYPE: ${{ github.event.comment.user.type }}
+          COMMENT_ASSOCIATION: ${{ github.event.comment.author_association }}
         run: |
           set -euo pipefail
+
+          # Comments written by this workflow are GitHub bot comments and must never
+          # recursively drive the state machine. Public drive-by commenters are also
+          # not allowed to progress somebody else's learning repository.
+          if [[ "$EVENT_NAME" == "issue_comment" ]]; then
+            if [[ "${COMMENT_AUTHOR_TYPE:-}" == "Bot" ]]; then
+              echo "Ignoring bot-generated comment."
+              exit 0
+            fi
+            case "${COMMENT_ASSOCIATION:-}" in
+              OWNER|MEMBER|COLLABORATOR) ;;
+              *)
+                echo "Ignoring course command from non-owner/non-collaborator association: ${COMMENT_ASSOCIATION:-unknown}."
+                exit 0
+                ;;
+            esac
+          fi
 
           row=$(gh issue list --state all --limit 100 --json number,title,state \
             | jq -r --arg title "$COURSE_TITLE" '.[] | select(.title == $title) | [.number,.state] | @tsv' \
