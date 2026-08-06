@@ -1,0 +1,12 @@
+{
+  "name": "GH-900 Codespaces Lab - TODO customize",
+  "image": "mcr.microsoft.com/devcontainers/base:ubuntu",
+  "customizations": {
+    "vscode": {
+      "settings": {
+        "editor.formatOnSave": false
+      }
+    }
+  },
+  "remoteUser": "vscode"
+}
