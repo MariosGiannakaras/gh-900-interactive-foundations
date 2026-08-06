@@ -25,23 +25,71 @@ def evidence_value(text: str, name: str) -> str | None:
     return match.group(1).strip() if match else None
 
 
-def validate_module1(errors: list[str]) -> None:
-    notes = ROOT / "labs/module-01/version-control-notes.md"
-    if not notes.exists():
-        errors.append("Module 1 version-control notes are missing.")
+def git(*args: str) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(["git", *args], cwd=ROOT, text=True, capture_output=True)
+
+
+def validate_recorded_commit(submission: str, field: str, errors: list[str]) -> None:
+    value = evidence_value(submission, field) or ""
+    if value == "REPLACE_ME" or not re.fullmatch(r"[0-9a-fA-F]{7,40}", value):
+        errors.append(f"{field} must contain the Git commit SHA produced by that checkpoint.")
         return
-    text = notes.read_text(encoding="utf-8")
-    if "TODO:" in text:
-        errors.append("Finish all TODO items in labs/module-01/version-control-notes.md.")
-    try:
-        subprocess.run(["git", "fetch", "origin", "main"], cwd=ROOT, check=False, capture_output=True)
-        count = subprocess.run(
-            ["git", "rev-list", "--count", "origin/main..HEAD"], cwd=ROOT, text=True, capture_output=True
-        )
-        if count.returncode == 0 and int(count.stdout.strip() or "0") < 2:
-            errors.append("Module 1 activity requires at least two learner commits beyond main.")
-    except Exception:
-        pass
+    resolved = git("rev-parse", "--verify", f"{value}^{{commit}}")
+    if resolved.returncode != 0:
+        errors.append(f"{field} does not resolve to a commit in this repository.")
+        return
+    ancestor = git("merge-base", "--is-ancestor", value, "HEAD")
+    if ancestor.returncode != 0:
+        errors.append(f"{field} must identify a commit contained in the current lab branch history.")
+
+
+def validate_module1(errors: list[str]) -> None:
+    submission_path = ROOT / "labs/module-01/submission.md"
+    notes_path = ROOT / "labs/module-01/version-control-notes.md"
+    diff_path = ROOT / "labs/module-01/diff-practice.txt"
+    vscode_path = ROOT / "labs/module-01/vscode-branch.txt"
+
+    for path in [submission_path, notes_path, diff_path, vscode_path]:
+        if not path.exists():
+            errors.append(f"Required Module 1 lab file is missing: {path.relative_to(ROOT)}")
+    if errors:
+        return
+
+    submission = submission_path.read_text(encoding="utf-8")
+    if "ACTIVITY_STATUS: COMPLETE" not in submission:
+        errors.append("Set ACTIVITY_STATUS to COMPLETE only after all six Module 1 checkpoints are done.")
+    activity_part = submission.split("> Do not answer", 1)[0]
+    if "REPLACE_ME" in activity_part:
+        errors.append("Replace every Module 1 EVIDENCE_* placeholder with your own durable evidence.")
+
+    notes = notes_path.read_text(encoding="utf-8")
+    if "TODO:" in notes:
+        errors.append("Finish every TODO in labs/module-01/version-control-notes.md.")
+    if "Temporary status line" in diff_path.read_text(encoding="utf-8"):
+        errors.append("Remove the Temporary status line from diff-practice.txt after completing the diff/stage/unstage exercise.")
+    if "TODO:" in vscode_path.read_text(encoding="utf-8"):
+        errors.append("Complete the TODO in labs/module-01/vscode-branch.txt.")
+
+    # When Git history is available, verify that the exercise produced actual Git state.
+    fetch = git("fetch", "origin", "main")
+    if fetch.returncode == 0:
+        count = git("rev-list", "--count", "origin/main..HEAD")
+        if count.returncode == 0 and int(count.stdout.strip() or "0") < 4:
+            errors.append("Module 1 requires at least four learner commits beyond main (CLI, VS Code, diff, and branch practice).")
+        merges = git("rev-list", "--merges", "origin/main..HEAD")
+        if merges.returncode == 0 and not merges.stdout.strip():
+            errors.append("Create and merge the temporary practice branch with a visible merge commit.")
+        for rel in [
+            "labs/module-01/version-control-notes.md",
+            "labs/module-01/diff-practice.txt",
+            "labs/module-01/vscode-branch.txt",
+        ]:
+            changed = git("diff", "--quiet", "origin/main...HEAD", "--", rel)
+            if changed.returncode == 0:
+                errors.append(f"The lab branch must contain a real change to {rel}.")
+
+    for field in ["EVIDENCE_CLI_COMMIT", "EVIDENCE_VSCODE_COMMIT", "EVIDENCE_DIFF_COMMIT", "EVIDENCE_MERGE_COMMIT"]:
+        validate_recorded_commit(submission, field, errors)
 
 
 def validate_markdown(errors: list[str]) -> None:
@@ -76,8 +124,8 @@ def validate_python(errors: list[str]) -> None:
 
 
 def validate_repo_evidence(module: int, text: str, errors: list[str]) -> None:
-    # Stronger verification when the course runs on GitHub Actions. The static evidence
-    # remains useful for features that cannot be inspected from a normal public repo.
+    # Stronger verification when the course runs on GitHub Actions. Static evidence remains
+    # useful for UI/account/enterprise features that cannot be inspected from a normal repo.
     if not os.environ.get("GITHUB_ACTIONS") or not shutil.which("gh"):
         return
     if module == 2:
@@ -113,7 +161,6 @@ def validate(module: int) -> list[str]:
     if "ACTIVITY_STATUS: COMPLETE" not in text:
         errors.append("Set ACTIVITY_STATUS to COMPLETE after finishing this module's practical work.")
 
-    # Assessment checkboxes are intentionally excluded from this phase. Evidence placeholders are not.
     activity_part = text.split("## Knowledge check", 1)[0]
     if "REPLACE_ME" in activity_part:
         errors.append("Replace every hands-on REPLACE_ME evidence placeholder with your own evidence/notes.")
