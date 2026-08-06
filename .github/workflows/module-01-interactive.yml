@@ -1,0 +1,146 @@
+name: GH-900 Module 1 Interactive Course
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - "lab/module-01-git"
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: gh900-module-01-${{ github.repository }}
+  cancel-in-progress: false
+
+env:
+  COURSE_TITLE: "GH-900 Interactive Course - Module 1: Introduction to Git"
+
+jobs:
+  guide:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Find or create course issue
+        id: issue
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+
+          row=$(gh issue list --state all --limit 100 --json number,title,state \
+            --jq '.[] | select(.title == env.COURSE_TITLE) | [.number, .state] | @tsv' \
+            | head -n 1)
+
+          created=false
+          if [[ -z "$row" ]]; then
+            url=$(gh issue create \
+              --title "$COURSE_TITLE" \
+              --body "This issue is the interactive guide for Module 1. It maps all 6 Microsoft Learn units plus the official linked GitHub Skills exercise. Follow only the latest course step posted by the workflow.")
+            number="${url##*/}"
+            state="OPEN"
+            created=true
+          else
+            number=$(printf '%s' "$row" | cut -f1)
+            state=$(printf '%s' "$row" | cut -f2)
+          fi
+
+          echo "number=$number" >> "$GITHUB_OUTPUT"
+          echo "state=$state" >> "$GITHUB_OUTPUT"
+          echo "created=$created" >> "$GITHUB_OUTPUT"
+
+      - name: Post first step
+        if: github.ref == 'refs/heads/main' && steps.issue.outputs.created == 'true'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ISSUE_NUMBER: ${{ steps.issue.outputs.number }}
+        run: gh issue comment "$ISSUE_NUMBER" --body-file course-content/module-01/step-1.md
+
+      - name: Evaluate lab progress
+        if: github.ref == 'refs/heads/lab/module-01-git' && steps.issue.outputs.state != 'CLOSED'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ISSUE_NUMBER: ${{ steps.issue.outputs.number }}
+        run: |
+          set -euo pipefail
+          git fetch origin main:refs/remotes/origin/main
+
+          commits=$(git rev-list --count origin/main..HEAD)
+          merge_commits=$(git rev-list --merges origin/main..HEAD | wc -l | tr -d ' ')
+
+          if git diff --quiet origin/main...HEAD -- labs/module-01/version-control-notes.md; then
+            gh issue comment "$ISSUE_NUMBER" --body-file course-content/module-01/step-2.md
+            exit 0
+          fi
+
+          if grep -q 'TODO:' labs/module-01/version-control-notes.md || (( commits < 2 )); then
+            gh issue comment "$ISSUE_NUMBER" --body "### Checkpoint not passed
+
+The notes exercise is not complete yet. Remove every \`TODO:\` from \`labs/module-01/version-control-notes.md\` and make sure the lab branch contains at least two commits beyond \`main\`: one CLI commit and one VS Code Source Control commit. Then push again."
+            exit 0
+          fi
+
+          if git diff --quiet origin/main...HEAD -- labs/module-01/diff-practice.txt; then
+            gh issue comment "$ISSUE_NUMBER" --body-file course-content/module-01/step-3.md
+            exit 0
+          fi
+
+          if grep -q 'Temporary status line' labs/module-01/diff-practice.txt; then
+            gh issue comment "$ISSUE_NUMBER" --body "### Checkpoint not passed
+
+The diff fixture still contains the temporary line that Step 3 asks you to remove. Complete the four requested edits, commit, and push again."
+            exit 0
+          fi
+
+          if (( merge_commits < 1 )); then
+            gh issue comment "$ISSUE_NUMBER" --body-file course-content/module-01/step-4.md
+            exit 0
+          fi
+
+          if git diff --quiet origin/main...HEAD -- labs/module-01/vscode-branch.txt; then
+            gh issue comment "$ISSUE_NUMBER" --body-file course-content/module-01/step-5.md
+            exit 0
+          fi
+
+          if grep -q 'TODO:' labs/module-01/vscode-branch.txt; then
+            gh issue comment "$ISSUE_NUMBER" --body "### Checkpoint not passed
+
+The VS Code branch exercise file still contains a \`TODO:\` marker. Finish Step 5 using the Source Control UI, merge the temporary branch into \`lab/module-01-git\`, and push again."
+            exit 0
+          fi
+
+          if git diff --quiet origin/main...HEAD -- labs/module-01/assessment.md; then
+            gh issue comment "$ISSUE_NUMBER" --body-file course-content/module-01/step-6.md
+            exit 0
+          fi
+
+          set +e
+          output=$(python3 scripts/validate_module_01.py 2>&1)
+          result=$?
+          set -e
+
+          if (( result == 0 )); then
+            gh issue comment "$ISSUE_NUMBER" --body "## Module 1 complete — Introduction to Git
+
+Assessment passed. You have completed all 6 Microsoft Learn units and the concepts/activities in the official linked GitHub Skills Introduction to Git exercise.
+
+Read the Unit 6 summary in \`modules/01-introduction-to-git/README.md\` once more before Module 2."
+            gh issue close "$ISSUE_NUMBER" --reason completed
+          else
+            gh issue comment "$ISSUE_NUMBER" --body "### Assessment needs another attempt
+
+\`\`\`text
+${output}
+\`\`\`
+
+Review only the indicated questions in the Module 1 theory, change your selected checkboxes, commit, and push again. The answer key remains hidden."
+          fi
