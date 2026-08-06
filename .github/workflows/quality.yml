@@ -64,6 +64,9 @@ jobs:
       - name: Audit public repository and complete 106-unit runtime
         run: python3 .gh900/quality/audit.py
 
+      - name: Audit on-demand workspace fixture contracts
+        run: python3 .gh900/quality/fixture_contracts.py
+
       - name: Audit semantic depth against pinned Microsoft source
         run: python3 .gh900/quality/semantic.py
 
@@ -73,9 +76,11 @@ jobs:
           .gh900/course_unit_state.py
           .gh900/workspace.py
           .gh900/validate_activity.py
+          .gh900/validate_activity_core.py
           .gh900/validate_assessment.py
           .gh900/validate_scenario.py
           .gh900/quality/audit.py
+          .gh900/quality/fixture_contracts.py
           .gh900/quality/semantic.py
 
       - name: Parse workflow YAML
