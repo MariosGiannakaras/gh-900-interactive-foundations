@@ -81,16 +81,15 @@ Copilot is supported in major IDE/editor ecosystems. The module specifically foc
 
 ### Course setup
 
-For the integrated lab, the learner will:
+This setup unit does **not** create permanent exercise files. Use it to verify or understand the environment you will use later:
 
-1. create/open `lab/module-16-copilot-python`;
-2. launch a Codespace or local VS Code environment;
-3. verify Python and FastAPI dependencies;
-4. verify GitHub/Copilot sign-in if Copilot access is available;
-5. start the supplied FastAPI application;
-6. open its interactive `/docs` page and execute the existing endpoint before making changes.
+1. confirm whether GitHub Copilot is available to your account;
+2. know how to sign in to GitHub from Visual Studio Code or a Codespace;
+3. identify where Copilot inline suggestions and Copilot Chat appear;
+4. understand how to accept, reject, and cycle through suggestions;
+5. confirm that Python development can be run in your chosen environment.
 
-This baseline verification matters: if the application was already broken, AI-generated changes cannot be evaluated meaningfully.
+The temporary FastAPI application, tests, and dependency file are generated only when Unit 5 begins. This keeps the repository clean until those files are genuinely needed.
 
 ---
 
@@ -165,7 +164,7 @@ Our exercise preserves that workflow without reproducing Microsoft's exact sampl
 
 ### Supplied application
 
-The course provides a small FastAPI application with one existing route and tests.
+When this unit begins, the course generates a small FastAPI application with one existing `/health` route, an acceptance-test suite, and a dependency file. The new endpoint tests intentionally fail until the learner implements the required change.
 
 ### Required change
 
@@ -177,18 +176,18 @@ Using Copilot where available, the learner must:
 4. return at least a deterministic checksum/hash and input length;
 5. identify/add any imports required by the chosen implementation;
 6. reject/handle invalid empty input appropriately;
-7. add automated tests;
+7. review and, where useful, improve the automated tests;
 8. run the test suite;
 9. run the API and verify the new endpoint via `/docs` or an HTTP request;
 10. record the prompt iterations and at least one Copilot suggestion that was rejected or modified.
 
 ### Why the reflection is required
 
-The repository can validate final code and tests but cannot reliably prove that a specific line came from Copilot. The learner therefore records the prompt/review process, while the engine verifies the executable result.
+The repository can validate final code structure and tests but cannot reliably prove that a specific line came from Copilot. The learner therefore records the prompt/review process while also verifying the executable result in the development environment.
 
 ### Fallback when Copilot is unavailable
 
-A learner without Copilot entitlement can complete an interactive prompt-review simulation using candidate generated responses included in the lab. They still must implement and test the final Python API. The course clearly marks this as a fallback rather than claiming Copilot was used.
+A learner without Copilot entitlement can use the clearly marked prompt-review alternatives presented directly in the course Issue. They still implement and test the final Python API themselves. The course marks this as a fallback rather than claiming Copilot was used.
 
 ---
 
