@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import json
 import re
-import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -28,7 +27,7 @@ def parse_index_units(text: str) -> list[str]:
     match = re.search(r"(?ms)^units:\s*\n(.*?)(?=^[A-Za-z_][\w-]*:\s*(?:\n|$))", text)
     if not match:
         raise ValueError("index.yml has no parseable units block")
-    return [m.group(1).strip() for m in re.finditer(r"(?m)^-\s+([^\s#]+)", match.group(1))]
+    return [m.group(1).strip() for m in re.finditer(r"(?m)^\s*-\s+([^\s#]+)", match.group(1))]
 
 
 def resolve_unit_source(module_root: Path, uid: str) -> tuple[Path, str]:
@@ -61,7 +60,6 @@ def main() -> int:
     depth_passed = 0
 
     for key, meta in lock["modules"].items():
-        module = int(key)
         upstream_root = UPSTREAM / meta["root"]
         local_readme = ROOT / meta["local"]
         index = upstream_root / "index.yml"
@@ -105,7 +103,6 @@ def main() -> int:
             local_n = normalized_len(local_unit)
             lower_uid = uid.lower()
 
-            # Assessments must be original, not copies of Microsoft's question bank.
             if "knowledge-check" in lower_uid or "assessment" in lower_uid:
                 if local_n < 220:
                     errors.append(f"M{key} U{number}: assessment coverage is too thin ({local_n} chars)")
@@ -113,7 +110,6 @@ def main() -> int:
                     depth_passed += 1
                 continue
 
-            # Hands-on details may live in the unit section plus the learner lab.
             if "exercise" in lower_uid:
                 local_n += normalized_len(lab_text)
                 ratio = 0.20
@@ -122,7 +118,6 @@ def main() -> int:
             else:
                 ratio = 0.40
 
-            # Tiny upstream units should still have a meaningful local explanation.
             required = max(240, int(source_n * ratio))
             if local_n < required:
                 rel = source_path.relative_to(UPSTREAM)
