@@ -257,6 +257,9 @@ jobs:
             [[ "$mode" == "activity" ]] || return 0
             git push origin --delete "$branch" >/dev/null 2>&1 || true
             git push origin --delete "$sandbox" >/dev/null 2>&1 || true
+            if [[ "$module" == "15" ]]; then
+              git push origin --delete "fixture/$state" >/dev/null 2>&1 || true
+            fi
 
             if [[ "$module" == "2" || "$module" == "9" || "$module" == "15" ]]; then
               tag="[GH-900 $state]"
@@ -320,19 +323,16 @@ jobs:
                 existing_issue="${issue_url##*/}"
               fi
 
+              # The fixture branch is generated automatically, but the learner opens
+              # and merges its PR. This keeps the course compatible with the secure
+              # repository setting that prevents GITHUB_TOKEN from creating PRs.
               fixture_branch="fixture/$unit"
               git checkout -B "$fixture_branch" "$next_sandbox"
               printf '%s\n' 'Regression marker: cache keys are no longer normalized before lookup.' >> exercise/history-fixture.txt
               git add exercise/history-fixture.txt
               git commit -m "Introduce cache normalization regression"
               git push --force origin "$fixture_branch"
-              pr_url=$(gh pr create --base "$next_sandbox" --head "$fixture_branch" \
-                --title "[GH-900 $unit] History fixture PR" \
-                --body "Related to #$existing_issue. This merged fixture supplies the history/blame trail for the investigation exercise.")
-              fixture_pr="${pr_url##*/}"
-              gh pr merge "$fixture_pr" --merge --delete-branch
-              git fetch origin "refs/heads/$next_sandbox:refs/remotes/origin/$next_sandbox"
-              git checkout -B "$next_sandbox" "refs/remotes/origin/$next_sandbox"
+              git checkout -B "$next_sandbox" "$next_sandbox"
             fi
 
             git checkout -B "$next_branch" "$next_sandbox"
@@ -354,22 +354,25 @@ jobs:
           set -e
 
           if (( next_result == 3 )); then
-            cleanup_activity
+            # Close the course before deleting the final lab. If the close fails, the
+            # old state and activity remain intact for a safe retry.
             gh issue comment "$issue_number" --body $'## Course complete\n\nYou completed GitHub Foundations Part 1 and Part 2: all 16 modules and all 106 official unit checkpoints represented by this course.'
-            new_body=$(printf '%s' "$body" | sed -E "s/<!-- gh900-state:[^>]+ -->/<!-- gh900-state:complete -->/")
-            gh issue edit "$issue_number" --body "$new_body"
             gh issue close "$issue_number" --reason completed
+            cleanup_activity
+            new_body=$(printf '%s' "$body" | sed -E "s/<!-- gh900-state:[^>]+ -->/<!-- gh900-state:complete -->/")
+            gh issue edit "$issue_number" --body "$new_body" >/dev/null 2>&1 || true
             exit 0
           fi
 
           next_state=$(jq -r .id <<<"$next_meta")
 
-          # Provision the next unit first. If GitHub is temporarily unavailable, the
-          # current validated activity remains recoverable until provisioning succeeds.
+          # Provision first, then persist the next state, and only then delete the old
+          # exercise. Any failure before the state edit leaves the validated current
+          # activity recoverable; after the edit, cleanup is safe and best-effort.
           prepare_activity "$next_state"
-          cleanup_activity
-
           new_body=$(printf '%s' "$body" | sed -E "s/<!-- gh900-state:[^>]+ -->/<!-- gh900-state:${next_state} -->/")
           gh issue edit "$issue_number" --body "$new_body"
+          cleanup_activity
+
           python3 .gh900/course_unit_state.py --unit "$next_state" --render > /tmp/next.md
           gh issue comment "$issue_number" --body-file /tmp/next.md
