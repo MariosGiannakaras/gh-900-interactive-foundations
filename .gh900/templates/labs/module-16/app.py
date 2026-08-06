@@ -1,16 +1,22 @@
-"""Small Python exercise for the final Copilot module.
+"""GH-900 Module 16 FastAPI exercise baseline.
 
-Learner task: implement summarize_scores. You may use GitHub Copilot, but you must
-review the suggestion and run test_app.py before completing the module.
+The application intentionally starts with one working route. During the exercise,
+add the Pydantic request model and POST /analyze-text endpoint described in the
+course Issue. Review any Copilot-generated code and verify it with the tests.
 """
 
+from fastapi import FastAPI
 
-def summarize_scores(scores):
-    """Return a summary dictionary for a sequence of numeric scores.
+app = FastAPI(title="GH-900 Copilot Python Practice")
 
-    Required behavior:
-    - empty input -> {"count": 0, "average": None, "max": None}
-    - non-empty input -> count, average rounded to two decimals, and maximum
-    - reject non-numeric values with TypeError
-    """
-    raise NotImplementedError("Implement this function during Module 16")
+
+@app.get("/health")
+def health() -> dict[str, str]:
+    """Return a deterministic health response for baseline verification."""
+    return {"status": "ok"}
+
+
+# TODO: Add a Pydantic BaseModel containing `text: str`.
+# TODO: Add POST /analyze-text.
+# TODO: Reject text that is empty after trimming whitespace.
+# TODO: Return deterministic input length and a checksum/hash.
