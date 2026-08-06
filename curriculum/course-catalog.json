@@ -13,6 +13,6 @@
   "12":{"title":"Introduction to GitHub administration","readme":"modules/12-github-administration/README.md","branch":"lab/module-12"},
   "13":{"title":"Authenticate and authorize user identities on GitHub","readme":"modules/13-authentication-authorization/README.md","branch":"lab/module-13"},
   "14":{"title":"Manage repository changes by using pull requests on GitHub","readme":"modules/14-pull-requests/README.md","branch":"lab/module-14"},
-  "15":{"title":"Search and organize repository history by using GitHub","readme":"modules/15-search-organize-history/README.md","branch":"lab/module-15"},
+  "15":{"title":"Search and organize repository history by using GitHub","readme":"modules/15-search-history/README.md","branch":"lab/module-15"},
   "16":{"title":"Using GitHub Copilot with Python","readme":"modules/16-copilot-python/README.md","branch":"lab/module-16"}
 }
