@@ -115,7 +115,16 @@ def extract_local_section(unit: Unit) -> str:
     match = re.search(pattern, text)
     if not match:
         raise RuntimeError(f"No learner content found for {unit.id}")
-    return match.group(1).strip()
+    section = match.group(1).strip()
+    # Legacy pre-v2 module files sometimes appended a module-level lab/simulation after
+    # the final Summary without a separator. Those blocks are not part of the official
+    # unit and must never leak into the Issue-first v2 learner instructions.
+    section = re.split(
+        r"(?mi)^## (?:Interactive(?:\s+course\s+flow|\s+lab(?:\s*/\s*enterprise\s+simulation)?|\s+identity\s+simulation)?|Hands-on/simulation layer)\s*$",
+        section,
+        maxsplit=1,
+    )[0].strip()
+    return section
 
 
 def extract_detail_section(unit: Unit) -> str:
@@ -284,7 +293,7 @@ Commit and push the completed InnerSource toolkit. Every artifact is temporary a
 8. commit and push the configuration. Only fake training data is used."""
     if m == 14:
         return f"""1. Make the Pull Request exercise contain **multiple learner commits** while fixing the intentional defect in `exercise/review_fixture.py`; keep `exercise/test_review_fixture.py` passing.
-2. Open the PR from **`{unit.branch}`** into **`{unit.sandbox}` as a **draft**.
+2. Open the PR from **`{unit.branch}`** into **`{unit.sandbox}`** as a **draft**.
 3. Inspect Conversation, Commits, Checks and Files changed.
 4. Convert the PR to **Ready for review**.
 5. Add an **inline review comment** on the changed code/intentional defect.
