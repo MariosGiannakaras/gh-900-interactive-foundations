@@ -23,6 +23,9 @@ jobs:
       - name: Audit complete 16-module interactive course
         run: python3 scripts/audit_complete_course.py
 
+      - name: Parse workflow YAML files
+        run: ruby -e 'require "yaml"; Dir[".github/workflows/*.{yml,yaml}"].each { |f| YAML.parse_file(f); puts "parsed #{f}" }'
+
       - name: Compile Python validators
         run: >-
           python3 -m py_compile
