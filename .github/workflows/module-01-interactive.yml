@@ -1,0 +1,108 @@
+name: GH-900 Module 1 Interactive Course
+
+on:
+  push:
+    branches:
+      - main
+      - "lab/module-01-git"
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: gh900-module-01-${{ github.repository }}
+  cancel-in-progress: false
+
+env:
+  COURSE_TITLE: "GH-900 Interactive Course - Module 1: Introduction to Git"
+  LAB_BRANCH: "lab/module-01-git"
+
+jobs:
+  guide:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Find or create the Module 1 course issue
+        id: issue
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          number=$(gh issue list \
+            --state all \
+            --search '"GH-900 Interactive Course - Module 1: Introduction to Git" in:title' \
+            --json number,title \
+            --jq '.[] | select(.title == env.COURSE_TITLE) | .number' \
+            | head -n 1)
+
+          if [[ -z "$number" ]]; then
+            url=$(gh issue create \
+              --title "$COURSE_TITLE" \
+              --body $'This issue is your interactive guide for Microsoft Learn **Introduction to Git**.\n\nRead the full mapped theory in [`modules/01-introduction-to-git/README.md`](../blob/main/modules/01-introduction-to-git/README.md). The workflow will post the next task only after GitHub can verify the previous durable checkpoint.\n\nThe official module has **6 units**, all mapped in this repository.')
+            number="${url##*/}"
+          else
+            gh issue reopen "$number" >/dev/null 2>&1 || true
+          fi
+
+          echo "number=$number" >> "$GITHUB_OUTPUT"
+
+      - name: Initialize Module 1
+        if: github.ref == 'refs/heads/main'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ISSUE_NUMBER: ${{ steps.issue.outputs.number }}
+        run: |
+          set -euo pipefail
+          gh issue comment "$ISSUE_NUMBER" --body $'## Step 1 - Create the lab branch\n\nBefore acting, read **Unit 1** and **Unit 2** in [`modules/01-introduction-to-git/README.md`](../blob/main/modules/01-introduction-to-git/README.md).\n\n### Activity\nCreate a branch with the exact name:\n\n```text\nlab/module-01-git\n```\n\nYou may create it in the GitHub branch selector or from a clone/Codespace. Do not edit the assessment yet.\n\nThe workflow is watching for the branch and will post the next step automatically.'
+
+      - name: Evaluate lab progress
+        if: github.ref == 'refs/heads/lab/module-01-git'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ISSUE_NUMBER: ${{ steps.issue.outputs.number }}
+        run: |
+          set -euo pipefail
+          git fetch origin main:refs/remotes/origin/main
+
+          commits=$(git rev-list --count origin/main..HEAD)
+
+          if git diff --quiet origin/main...HEAD -- labs/module-01/version-control-notes.md; then
+            gh issue comment "$ISSUE_NUMBER" --body $'## Step 2 - Use Git from the terminal and create your first snapshot\n\nBranch detected. Now complete the hands-on part of **Unit 3** and **Unit 4**.\n\n1. Open a Codespace for this branch or work from a local clone.\n2. Run `git config user.name` and `git config user.email`; set repository-local values if needed.\n3. Run `git status`.\n4. Edit `labs/module-01/version-control-notes.md` and replace **all** `TODO:` lines with your own notes.\n5. Run `git status` again and observe the modified file.\n6. Stage it with `git add labs/module-01/version-control-notes.md`.\n7. Inspect status again.\n8. Commit with a meaningful message.\n9. Run `git log --oneline --decorate` and inspect the new commit.\n10. Run `git help status` or `git status --help` at least once.\n11. Push the branch.\n\nThe next step is based on the pushed repository state.'
+            exit 0
+          fi
+
+          if grep -q 'TODO:' labs/module-01/version-control-notes.md; then
+            gh issue comment "$ISSUE_NUMBER" --body $'### Checkpoint not passed\n\nThe notes file changed, but one or more `TODO:` markers remain. Complete all three sections in `labs/module-01/version-control-notes.md`, commit, and push again.'
+            exit 0
+          fi
+
+          if (( commits < 2 )); then
+            gh issue comment "$ISSUE_NUMBER" --body $'## Step 3 - Create a second point in history\n\nYour first committed snapshot is visible. Now demonstrate that version control preserves a sequence of states.\n\n1. Run `git log --oneline --graph --decorate`.\n2. Add a new section named `## Branches` to `labs/module-01/version-control-notes.md`.\n3. Explain briefly why a branch is useful for isolated or experimental work.\n4. Use `git status`, `git add`, and `git commit` to create a **second distinct commit** on this branch.\n5. Run `git log --oneline --graph --decorate` again and compare the history.\n6. Push the branch.'
+            exit 0
+          fi
+
+          if git diff --quiet origin/main...HEAD -- labs/module-01/assessment.md; then
+            gh issue comment "$ISSUE_NUMBER" --body $'## Step 4 - Module assessment\n\nThe branch now contains multiple commits. Complete **Unit 5**.\n\nOpen `labs/module-01/assessment.md`. For every question, mark exactly one option by changing `[ ]` to `[x]`. Do not edit the question or answer wording.\n\nCommit and push the assessment. The validator will return your score without displaying the answer key.'
+            exit 0
+          fi
+
+          set +e
+          output=$(python3 scripts/validate_module_01.py 2>&1)
+          result=$?
+          set -e
+
+          if (( result == 0 )); then
+            gh issue comment "$ISSUE_NUMBER" --body $'## Module 1 complete\n\nAssessment passed. You have completed all six mapped units of **Introduction to Git** plus the hands-on Git workflow.\n\nBefore moving on, read **Unit 6 - Summary** in [`modules/01-introduction-to-git/README.md`](../blob/main/modules/01-introduction-to-git/README.md).\n\nValidated skills include version-control concepts, distributed Git, Git vs GitHub, repository terminology, identity configuration, working tree/staging/commit flow, history inspection, and branch-based work.'
+            gh issue close "$ISSUE_NUMBER" --reason completed
+          else
+            safe_output=$(printf '%s' "$output" | sed 's/`/\\`/g')
+            gh issue comment "$ISSUE_NUMBER" --body $'### Assessment needs another attempt\n\n```text\n'"$safe_output"$'\n```\n\nReview the indicated concepts in the Module 1 theory, change only your selected checkboxes, commit, and push again. The correct answers are not shown.'
+          fi
