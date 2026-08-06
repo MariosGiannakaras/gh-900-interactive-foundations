@@ -38,7 +38,7 @@ def main() -> int:
     if len(unit_ids) != 106:
         errors.append(f"official curriculum must enumerate 106 unit IDs; found {len(unit_ids)}")
     if set(catalog) != {f"{n:02d}" for n in range(1, 17)}:
-        errors.append("course catalog must contain Modules 01-16 exactly")
+        errors.append("source course catalog must contain Modules 01-16 exactly")
     if set(source_lock.get("modules", {})) != {f"{n:02d}" for n in range(1, 17)}:
         errors.append("Microsoft source lock must contain Modules 01-16 exactly")
     if sum(int(v["units"]) for v in source_lock.get("modules", {}).values()) != 106:
@@ -51,7 +51,7 @@ def main() -> int:
             continue
         readme = ROOT / item["readme"]
         if not readme.exists():
-            errors.append(f"Module {key} README missing: {item['readme']}")
+            errors.append(f"Module {key} source README missing: {item['readme']}")
             continue
         text = readme.read_text(encoding="utf-8")
         headings = re.findall(r"(?m)^## Unit \d+\b", text)
@@ -61,12 +61,12 @@ def main() -> int:
         if "Official Microsoft Learn module:" not in text:
             errors.append(f"Module {key} README lacks official-source traceability")
 
-        required = [ROOT / f"labs/module-{key}/submission.md"]
+        source_fixtures = [ROOT / f"labs/module-{key}/submission.md"]
         if n == 1:
-            required.append(ROOT / "labs/module-01/assessment.md")
-        for path in required:
+            source_fixtures.append(ROOT / "labs/module-01/assessment.md")
+        for path in source_fixtures:
             if not path.exists():
-                errors.append(f"Module {key} interactive artifact missing: {path.relative_to(ROOT)}")
+                errors.append(f"Maintainer fixture missing: {path.relative_to(ROOT)}")
 
     if set(hashes) != {f"{n:02d}" for n in range(2, 17)}:
         errors.append("assessment hash map must contain Modules 02-16 exactly")
@@ -74,21 +74,40 @@ def main() -> int:
         if set(questions) != {f"Q{n}" for n in range(1, 7)}:
             errors.append(f"Module {key} assessment hash map must contain Q1-Q6")
 
-    runtime = [
+    learner_runtime = [
         ".github/workflows/00-start-course.yml",
         ".github/workflows/01-course-engine.yml",
-        "scripts/course_unit_state.py",
-        "scripts/test_course_runtime.py",
-        "scripts/validate_unit_activity.py",
-        "scripts/validate_module_01.py",
-        "scripts/validate_course_module.py",
+        ".gh900/course_unit_state.py",
+        ".gh900/workspace.py",
+        ".gh900/validate_activity.py",
+        ".gh900/validate_assessment.py",
+        ".gh900/validate_scenario.py",
+        ".gh900/data/official-curriculum.yml",
+        ".gh900/data/course-catalog.json",
+        ".gh900/data/microsoft-source-lock.json",
+        ".gh900/data/assessment-hashes.json",
+        ".gh900/content/part-1/01-introduction-to-git/README.md",
+        ".gh900/content/part-1/08-markdown/README.md",
+        ".gh900/content/part-2/09-open-source/README.md",
+        ".gh900/content/part-2/16-copilot-python/README.md",
+    ]
+    for rel in learner_runtime:
+        if not (ROOT / rel).exists():
+            errors.append(f"packaged learner runtime component missing: {rel}")
+
+    for obsolete in ["course", "course-content"]:
+        if (ROOT / obsolete).exists():
+            errors.append(f"obsolete duplicate source structure must be removed: {obsolete}/")
+
+    source_checks = [
+        "scripts/check_curriculum_manifest.py",
         "scripts/audit_microsoft_semantic_depth.py",
-        "curriculum/course-catalog.json",
+        "scripts/test_learner_runtime_v2.py",
         "curriculum/microsoft-source-lock.json",
     ]
-    for rel in runtime:
+    for rel in source_checks:
         if not (ROOT / rel).exists():
-            errors.append(f"runtime component missing: {rel}")
+            errors.append(f"source-maintenance component missing: {rel}")
 
     template_guard = "github.event.repository.is_template"
     source_repo_literal = "MariosGiannakaras/gh-900-interactive-foundations"
@@ -106,12 +125,12 @@ def main() -> int:
         return fail(errors)
 
     print("Course completeness audit passed.")
-    print("Learning paths: 2")
+    print("Learning paths: 2/2")
     print("Modules: 16/16")
     print("Official units mapped: 106/106")
-    print("Interactive module packages: 16/16")
+    print("Source authoring + packaged learner runtime: present")
+    print("Learner runtime: Part 1/Part 2 + Issue-first + per-unit workspace architecture")
     print("Pinned Microsoft source lock: present")
-    print("Template-safe automatic Step 0 + unit-by-unit progression runtime: present")
     return 0
 
 
