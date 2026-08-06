@@ -45,6 +45,8 @@ GH-900 Interactive Course - Module 1: Introduction to Git
 
 Follow the latest instruction posted in that Issue. The first activity is to create the exact branch `lab/module-01-git`. Later steps unlock according to the durable repository state produced by your work.
 
+The repository is public so the interactive GitHub Actions course can run without consuming private-repository Actions minutes.
+
 Do not read or modify the validator to discover answers while taking the assessment; use it as an exam-style blind check.
 
 ## Sources of truth
