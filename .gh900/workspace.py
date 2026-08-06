@@ -283,7 +283,6 @@ def bootstrap() -> None:
         "course",
         "course-content",
         ".devcontainer",
-        "LICENSE",
         ".github/CONTRIBUTING.md",
         ".github/CODE_OF_CONDUCT.md",
         ".github/SECURITY.md",
