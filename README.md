@@ -1,5 +1,9 @@
 # GH-900 Interactive Foundations
 
+> [!IMPORTANT]
+> **Curriculum freshness:** [![Monthly Microsoft Learn drift check](https://github.com/MariosGiannakaras/gh-900-interactive-foundations/actions/workflows/curriculum-drift.yml/badge.svg?branch=main)](https://github.com/MariosGiannakaras/gh-900-interactive-foundations/actions/workflows/curriculum-drift.yml)  
+> This source template checks the 16 locked Microsoft Learn module paths **once per month**. A red **Curriculum Drift** badge means Microsoft Learn changed after the verified baseline and the course should be reviewed before relying on its curriculum status.
+
 [![Course Quality](https://github.com/MariosGiannakaras/gh-900-interactive-foundations/actions/workflows/quality.yml/badge.svg?branch=main)](https://github.com/MariosGiannakaras/gh-900-interactive-foundations/actions/workflows/quality.yml)
 ![Curriculum](https://img.shields.io/badge/curriculum-16%20modules%20%7C%20106%20units-0969da)
 ![Template](https://img.shields.io/badge/GitHub-template-8250df?logo=github)
