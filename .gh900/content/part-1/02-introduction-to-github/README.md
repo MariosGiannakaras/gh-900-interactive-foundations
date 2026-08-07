@@ -112,6 +112,10 @@ GitHub Pages hosts static websites sourced from a GitHub repository. Typical sou
 
 GitHub may expose experimental or preview functionality through feature-preview controls. Preview features can change and should not be treated as stable platform contracts.
 
+### Repository insights
+
+Repository **Insights** can expose activity and repository-management information such as contributors, traffic, dependency/network information, community health, or other analytics depending on repository type and permissions. Stars are a public signal that users want to bookmark or show interest in a repository; they are not the same as a permission or subscription. Dependency insights help maintainers understand the software supply chain and related security/maintenance context.
+
 ---
 
 ## Unit 3 — Components of the GitHub flow
@@ -283,21 +287,20 @@ GitHub Pages is a static-hosting capability using files stored in a GitHub repos
 
 Official unit: <https://learn.microsoft.com/en-us/training/modules/introduction-to-github/6-guided-tour-of-github>
 
-The official exercise validates the core GitHub workflow. Our integrated lab reproduces the same durable GitHub actions in this repository.
+The interactive exercise reproduces the durable GitHub Flow actions inside an isolated learner sandbox rather than changing `main`.
 
-You will:
+On `lab/m02-u06`, the learner:
 
-1. create the module branch `lab/module-02-github`;
-2. create/edit the module lab file;
-3. commit the change;
-4. create an Issue used to track the exercise;
-5. open a pull request from the module branch;
-6. link the PR and Issue;
-7. inspect the Files changed and Conversation tabs;
-8. merge the PR when the automated course instructs you;
-9. observe the linked Issue/PR state and branch history.
+1. edits `exercise/github-flow.md`;
+2. creates an Issue whose title includes `[GH-900 m02-u06]`;
+3. commits and pushes the learner-branch change;
+4. opens a Pull Request from `lab/m02-u06` into `sandbox/m02-u06`;
+5. links the PR to the exercise Issue;
+6. inspects the PR **Conversation** and **Files changed** views;
+7. merges the PR after the change and metadata are complete;
+8. observes the linked Issue/PR state and branch history.
 
-The course engine validates the branch, commits, Issue/PR metadata, and completion marker where GitHub exposes the state safely to Actions.
+The course engine validates the changed fixture and real Issue/PR state, then closes/cleans temporary course state after the checkpoint passes.
 
 ---
 
