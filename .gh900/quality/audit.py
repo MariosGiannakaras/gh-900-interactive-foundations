@@ -13,6 +13,7 @@ DATA = GH900 / "data"
 sys.path.insert(0, str(GH900))
 
 import course_unit_state as state  # noqa: E402
+import runtime_protocol  # noqa: E402
 
 EXPECTED_MODULE_UNITS = {
     1: 6, 2: 8, 3: 9, 4: 7, 5: 7, 6: 7, 7: 8, 8: 5,
@@ -65,6 +66,17 @@ def check_workflows(errors: list[str]) -> None:
         error(errors, "Course Quality must be source-template-only")
     if 'branches:\n      - "lab/**"' not in engine:
         error(errors, "Course engine must limit push progression to temporary lab branches")
+    for required in (
+        "github.event.issue.title == 'GH-900 Interactive Foundations — Course'",
+        "startsWith(github.event.pull_request.head.ref, 'lab/')",
+        "startsWith(github.event.pull_request.base.ref, 'sandbox/')",
+        "reconcile_current_lesson",
+        "gh900-unit:${state}",
+        'if [[ "$command" == "/help" ]]',
+        "validate_checkpoint.py",
+    ):
+        if required not in engine:
+            error(errors, f"Course engine is missing completion/recovery contract: {required}")
 
 
 def check_public_surface(errors: list[str]) -> None:
@@ -83,10 +95,12 @@ def check_public_surface(errors: list[str]) -> None:
         "README.md", "LICENSE",
         ".github/CONTRIBUTING.md", ".github/CODE_OF_CONDUCT.md", ".github/SECURITY.md",
         ".github/ARCHITECTURE.md", ".github/MAINTAINING.md",
-        ".gh900/course_unit_state.py", ".gh900/workspace.py",
-        ".gh900/validate_activity.py", ".gh900/validate_assessment.py", ".gh900/validate_scenario.py",
+        ".gh900/course_unit_state.py", ".gh900/runtime_protocol.py", ".gh900/workspace.py",
+        ".gh900/validate_activity.py", ".gh900/validate_assessment.py", ".gh900/validate_checkpoint.py", ".gh900/validate_scenario.py",
         ".gh900/data/official-curriculum.yml", ".gh900/data/course-catalog.json",
         ".gh900/data/microsoft-source-lock.json", ".gh900/data/assessment-hashes.json",
+        ".gh900/data/concept-coverage.json", ".gh900/data/gh900-objectives.json",
+        ".gh900/quality/concept_coverage.py", ".gh900/quality/exam_coverage.py", ".gh900/quality/simulate_runtime.py",
     ]
     for rel in required:
         if not (ROOT / rel).exists():
@@ -132,8 +146,13 @@ def check_curriculum(errors: list[str]) -> None:
         error(errors, f"Expected 16 assessment units, got {modes['assessment']}")
     for module in range(1, 17):
         module_modes = {u.mode for u in units if u.module == module}
-        if not ({"activity", "scenario"} & module_modes):
-            error(errors, f"Module {module} needs at least one practical activity or explicit scenario")
+        if not ({"activity", "scenario", "checkpoint"} & module_modes):
+            error(errors, f"Module {module} needs at least one practical activity, scenario, or account-aware checkpoint")
+    for unit in units:
+        if "exercise" in unit.title.lower() and unit.mode == "read":
+            error(errors, f"Official exercise {unit.id} must not be downgraded to reading-only mode")
+    if state.find("m16-u03").mode != "checkpoint":
+        error(errors, "M16-U03 must be an account-aware interactive checkpoint")
 
     catalog = json.loads((DATA / "course-catalog.json").read_text(encoding="utf-8"))
     if set(catalog) != {f"{n:02d}" for n in range(1, 17)}:
@@ -155,6 +174,8 @@ def check_rendering(errors: list[str]) -> None:
         except Exception as exc:
             error(errors, f"{unit.id} failed to render: {exc}")
             continue
+        if not rendered.startswith(runtime_protocol.lesson_marker(unit.id)):
+            error(errors, f"{unit.id} render must start with a stable gh900-unit marker")
         if unit.title not in rendered:
             error(errors, f"{unit.id} render must show the unit title")
         if f"{unit.ordinal} / 106" not in rendered:
@@ -166,11 +187,12 @@ def check_rendering(errors: list[str]) -> None:
                 error(errors, f"{unit.id} render leaks legacy learner instruction/path: {stale}")
         if unit.mode in {"read", "summary"} and "/next" not in rendered:
             error(errors, f"{unit.id} must expose /next in the Issue")
-        if unit.mode == "assessment":
-            if "/answer" not in rendered or "Question 1" not in rendered:
-                error(errors, f"{unit.id} assessment must be fully Issue-native")
+        if unit.mode == "assessment" and ("/answer" not in rendered or "Question 1" not in rendered):
+            error(errors, f"{unit.id} assessment must be fully Issue-native")
         if unit.mode == "scenario" and "/scenario" not in rendered:
             error(errors, f"{unit.id} scenario must be Issue-native")
+        if unit.mode == "checkpoint" and "/checkpoint" not in rendered:
+            error(errors, f"{unit.id} checkpoint must be Issue-native")
         if unit.mode == "activity":
             if "exercise" not in rendered.lower():
                 error(errors, f"{unit.id} hands-on unit must present its exercise in the Issue")
@@ -206,7 +228,7 @@ def main() -> int:
     print("Curriculum: 2/2 parts, 16/16 modules, 106/106 units")
     print("Part split: 57 + 49")
     print("Modes: " + ", ".join(f"{k}={v}" for k, v in sorted(modes.items())))
-    print("All learner units render directly into the course Issue without legacy paths.")
+    print("All official exercises are interactive and all learner units render directly into the course Issue.")
     return 0
 
 
