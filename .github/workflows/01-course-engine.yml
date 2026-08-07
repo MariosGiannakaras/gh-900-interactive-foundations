@@ -1,4 +1,4 @@
-name: GH-900 Unit Course Engine
+name: GH-900 Interactive Course
 
 on:
   issue_comment:
@@ -7,13 +7,13 @@ on:
     branches:
       - "lab/**"
   pull_request:
-    types: [opened, edited, synchronize, reopened, ready_for_review]
+    types: [opened, edited, synchronize, reopened, converted_to_draft, ready_for_review, closed]
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
   issues: write
-  pull-requests: read
+  pull-requests: write
 
 concurrency:
   group: gh900-course-${{ github.repository }}
@@ -21,21 +21,27 @@ concurrency:
 
 jobs:
   progress:
-    # Never run learner state in a repository that is itself marked as a template.
-    # For pull requests, also reject drive-by PRs before checkout so untrusted fork
-    # code is not executed.
     if: >-
       !github.event.repository.is_template &&
+      (github.event_name != 'push' || github.event.deleted != true) &&
       (github.event_name != 'pull_request' ||
-       github.event.pull_request.author_association == 'OWNER' ||
-       github.event.pull_request.author_association == 'MEMBER' ||
-       github.event.pull_request.author_association == 'COLLABORATOR')
-    runs-on: ubuntu-latest
+       (github.event.pull_request.head.repo.full_name == github.repository &&
+        (github.event.pull_request.author_association == 'OWNER' ||
+         github.event.pull_request.author_association == 'MEMBER' ||
+         github.event.pull_request.author_association == 'COLLABORATOR'))) &&
+      (github.event_name != 'issue_comment' ||
+       (github.event.comment.user.type != 'Bot' &&
+        (github.event.comment.author_association == 'OWNER' ||
+         github.event.comment.author_association == 'MEMBER' ||
+         github.event.comment.author_association == 'COLLABORATOR')))
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
     steps:
-      - name: Check out the event revision
-        uses: actions/checkout@v4
+      - name: Check out trusted learner revision
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
 
       - name: Evaluate current unit
         shell: bash
@@ -45,181 +51,328 @@ jobs:
           EVENT_NAME: ${{ github.event_name }}
           COMMENT_BODY: ${{ github.event.comment.body }}
           COMMENT_ISSUE: ${{ github.event.issue.number }}
-          COMMENT_AUTHOR_TYPE: ${{ github.event.comment.user.type }}
-          COMMENT_ASSOCIATION: ${{ github.event.comment.author_association }}
+          PR_ACTION: ${{ github.event.action }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
           PR_HEAD_REF: ${{ github.event.pull_request.head.ref }}
+          PR_BASE_REF: ${{ github.event.pull_request.base.ref }}
+          PR_MERGED: ${{ github.event.pull_request.merged }}
+          PR_DRAFT: ${{ github.event.pull_request.draft }}
+          PUSH_REF: ${{ github.ref_name }}
+          HEAD_COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
         run: |
           set -euo pipefail
-
-          # Comments written by this workflow are GitHub bot comments and must never
-          # recursively drive the state machine. Public drive-by commenters are also
-          # not allowed to progress somebody else's learning repository.
-          if [[ "$EVENT_NAME" == "issue_comment" ]]; then
-            if [[ "${COMMENT_AUTHOR_TYPE:-}" == "Bot" ]]; then
-              echo "Ignoring bot-generated comment."
-              exit 0
-            fi
-            case "${COMMENT_ASSOCIATION:-}" in
-              OWNER|MEMBER|COLLABORATOR) ;;
-              *)
-                echo "Ignoring course command from non-owner/non-collaborator association: ${COMMENT_ASSOCIATION:-unknown}."
-                exit 0
-                ;;
-            esac
-          fi
 
           row=$(gh issue list --state all --limit 100 --json number,title,state \
             | jq -r --arg title "$COURSE_TITLE" '.[] | select(.title == $title) | [.number,.state] | @tsv' \
             | head -n 1)
-          if [[ -z "$row" ]]; then
-            echo "Course Issue does not exist yet; Step 0 will create it."
-            exit 0
-          fi
+          [[ -n "$row" ]] || { echo "Course Issue does not exist yet."; exit 0; }
           issue_number=$(printf '%s' "$row" | cut -f1)
           issue_state=$(printf '%s' "$row" | cut -f2)
           [[ "$issue_state" == "OPEN" ]] || exit 0
 
           body=$(gh issue view "$issue_number" --json body --jq .body)
           state=$(grep -oE 'gh900-state:m[0-9]{2}-u[0-9]{2}' <<<"$body" | head -n1 | cut -d: -f2)
-          if [[ -z "$state" ]]; then
-            echo "Course state marker is missing."
-            exit 1
-          fi
+          [[ -n "$state" ]] || { echo "Course state marker is missing."; exit 1; }
 
-          meta=$(python3 scripts/course_unit_state.py --unit "$state")
+          meta=$(python3 .gh900/course_unit_state.py --unit "$state")
           mode=$(jq -r .mode <<<"$meta")
           module=$(jq -r .module <<<"$meta")
-          branch=$(jq -r .branch <<<"$meta")
+          branch=$(jq -r '.branch // ""' <<<"$meta")
+          sandbox=$(jq -r '.sandbox // ""' <<<"$meta")
+          requires_pr=$(jq -r '.requires_pr // false' <<<"$meta")
           advance=false
 
-          post_activity_failure() {
-            local output="$1"
+          post_failure() {
+            local title="$1"
+            local output="$2"
             {
-              printf '### Hands-on checkpoint needs another attempt\n\n```text\n%s\n```\n\n' "$output"
-              printf '%s\n' 'Fix the listed items. A relevant push/PR update will check the state again automatically; `/check` is also available as recovery.'
+              printf '### %s\n\n```text\n%s\n```\n\n' "$title" "$output"
+              printf '%s\n' 'Fix only the items above. The course will recheck on the next relevant event; `/check` is available when needed.'
             } > /tmp/fail.md
             gh issue comment "$issue_number" --body-file /tmp/fail.md
           }
 
-          post_assessment_failure() {
-            local output="$1"
-            {
-              printf '### Blind assessment needs another attempt\n\n```text\n%s\n```\n\n' "$output"
-              printf '%s\n' 'Review only the indicated questions, change your selections, and push again. Correct answers remain hidden.'
-            } > /tmp/fail.md
-            gh issue comment "$issue_number" --body-file /tmp/fail.md
+          validate_activity() {
+            set +e
+            output=$(python3 .gh900/validate_activity.py --unit "$state" 2>&1)
+            result=$?
+            set -e
+            if (( result != 0 )); then
+              post_failure "Hands-on checkpoint needs another attempt" "$output"
+              return "$result"
+            fi
+            return 0
           }
 
-          validate_current_checkpoint() {
-            if [[ "$mode" == "activity" ]]; then
-              set +e
-              output=$(python3 scripts/validate_unit_activity.py --module "$module" 2>&1)
-              result=$?
-              set -e
-              if (( result != 0 )); then
-                post_activity_failure "$output"
-                return "$result"
-              fi
-              return 0
-            fi
-
-            if [[ "$mode" == "assessment" ]]; then
-              if (( module == 1 )); then
-                validator=(python3 scripts/validate_module_01.py)
-              else
-                validator=(python3 scripts/validate_course_module.py --module "$module")
-              fi
-              set +e
-              output=$("${validator[@]}" 2>&1)
-              result=$?
-              set -e
-              if (( result != 0 )); then
-                post_assessment_failure "$output"
-                return "$result"
-              fi
-              return 0
-            fi
-
-            return 3
-          }
-
-          checkout_lab_branch_for_recheck() {
+          checkout_lab() {
             if ! git ls-remote --exit-code origin "refs/heads/$branch" >/dev/null 2>&1; then
-              gh issue comment "$issue_number" --body "The current checkpoint expects branch \`$branch\`, but that branch does not exist yet. Create it from \`main\`, complete the activity, and push."
+              gh issue comment "$issue_number" --body "The temporary learner branch \`$branch\` is missing. The current exercise must be recreated before validation can continue."
               return 1
             fi
-            git fetch origin "$branch"
-            git checkout -B "$branch" FETCH_HEAD
+            git fetch origin "refs/heads/$branch:refs/remotes/origin/$branch"
+            git checkout -B "$branch" "refs/remotes/origin/$branch"
+          }
+
+          pr_has_marker() {
+            local marker="$1"
+            gh pr view "$PR_NUMBER" --json comments --jq '.comments[].body' 2>/dev/null | grep -Fq "$marker"
+          }
+
+          record_pr_marker() {
+            local marker="$1"
+            local message="$2"
+            if ! pr_has_marker "$marker"; then
+              {
+                printf '%s\n\n' "$message"
+                printf '<!-- %s -->\n' "$marker"
+              } > /tmp/pr-comment.md
+              gh pr comment "$PR_NUMBER" --body-file /tmp/pr-comment.md
+            fi
           }
 
           if [[ "$EVENT_NAME" == "issue_comment" ]]; then
             [[ "${COMMENT_ISSUE:-}" == "$issue_number" ]] || exit 0
-            command=$(printf '%s' "${COMMENT_BODY:-}" | tr -d '\r' | xargs)
+            command=$(printf '%s' "${COMMENT_BODY:-}" | tr -d '\r' | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
 
             if [[ "$command" == "/help" ]]; then
-              python3 scripts/course_unit_state.py --unit "$state" --render > /tmp/current.md
+              python3 .gh900/course_unit_state.py --unit "$state" --render > /tmp/current.md
               gh issue comment "$issue_number" --body-file /tmp/current.md
               exit 0
             fi
 
-            if [[ "$mode" == "read" || "$mode" == "summary" ]]; then
-              if [[ "$command" == "/next" ]]; then
+            case "$mode" in
+              read|summary)
+                if [[ "$command" == "/next" ]]; then
+                  advance=true
+                else
+                  gh issue comment "$issue_number" --body $'This is a reading/understanding unit. Comment exactly `/next` when ready, or `/help` to show it again.'
+                  exit 0
+                fi
+                ;;
+              assessment)
+                if [[ "$command" != /answer\ * ]]; then
+                  gh issue comment "$issue_number" --body $'Submit the assessment in this Issue with `/answer` followed by the answer letters in order. Use `/help` to show the questions again.'
+                  exit 0
+                fi
+                answers="${command#/answer }"
+                set +e
+                output=$(python3 .gh900/validate_assessment.py --module "$module" --answers "$answers" 2>&1)
+                result=$?
+                set -e
+                if (( result != 0 )); then
+                  post_failure "Assessment needs another attempt" "$output"
+                  exit 0
+                fi
                 advance=true
-              else
-                gh issue comment "$issue_number" --body $'This unit is a reading/understanding step. Comment exactly `/next` when you are ready, or `/help` to show the unit again.'
-                exit 0
-              fi
-            elif [[ "$command" == "/check" ]]; then
-              checkout_lab_branch_for_recheck || exit 0
-              if validate_current_checkpoint; then
+                ;;
+              scenario)
+                if [[ "$command" != /scenario\ * ]]; then
+                  gh issue comment "$issue_number" --body $'Reply with `/scenario` followed by your reasoned response. Use `/help` to show the scenario again.'
+                  exit 0
+                fi
+                response="${command#/scenario }"
+                set +e
+                output=$(python3 .gh900/validate_scenario.py --unit "$state" --response "$response" 2>&1)
+                result=$?
+                set -e
+                if (( result != 0 )); then
+                  post_failure "Scenario response needs more detail" "$output"
+                  exit 0
+                fi
                 advance=true
-              else
-                exit 0
-              fi
-            else
-              gh issue comment "$issue_number" --body $'This checkpoint advances from repository state. Complete the latest hands-on/assessment instruction; relevant pushes and Pull Request updates are checked automatically. Use `/check` only as a recovery recheck.'
-              exit 0
-            fi
+                ;;
+              activity)
+                if [[ "$command" == /reflection\ * ]]; then
+                  if (( ${#command} < 60 )); then
+                    gh issue comment "$issue_number" --body $'Reflection recorded, but it is very short. Add the observations/reasoning requested by the current checklist before final validation.'
+                  else
+                    gh issue comment "$issue_number" --body $'Reflection recorded. Complete the remaining hands-on steps; the next relevant push/PR or `/check` will validate it together with repository state.'
+                  fi
+                  exit 0
+                fi
+                if [[ "$module" == "15" && "$command" == /investigation\ * ]]; then
+                  gh issue comment "$issue_number" --body $'Investigation response recorded. Apply the requested metadata/cross-links to the temporary regression Issue, then comment `/check`.'
+                  exit 0
+                fi
+                if [[ "$command" != "/check" ]]; then
+                  gh issue comment "$issue_number" --body $'This hands-on unit advances from repository/GitHub state. Complete the latest checklist. `/reflection ...` or `/investigation ...` may be required by the current unit; use `/check` for a manual final recheck.'
+                  exit 0
+                fi
+                checkout_lab || exit 0
+                if validate_activity; then
+                  advance=true
+                else
+                  exit 0
+                fi
+                ;;
+            esac
 
           elif [[ "$EVENT_NAME" == "push" ]]; then
-            [[ "$GITHUB_REF_NAME" == "$branch" ]] || exit 0
-            if validate_current_checkpoint; then
+            [[ "${PUSH_REF:-}" == "$branch" ]] || exit 0
+            [[ "${HEAD_COMMIT_MESSAGE:-}" != "[gh900 setup]"* ]] || exit 0
+            [[ "$mode" == "activity" ]] || exit 0
+            if [[ "$requires_pr" == "true" || "$module" == "15" ]]; then
+              exit 0
+            fi
+            if validate_activity; then
               advance=true
             else
               exit 1
             fi
 
           elif [[ "$EVENT_NAME" == "pull_request" ]]; then
-            [[ "${PR_HEAD_REF:-}" == "$branch" ]] || exit 0
-            [[ "$mode" == "activity" ]] || exit 0
-            if validate_current_checkpoint; then
+            [[ "$mode" == "activity" && "$requires_pr" == "true" ]] || exit 0
+            [[ "${PR_HEAD_REF:-}" == "$branch" && "${PR_BASE_REF:-}" == "$sandbox" ]] || exit 0
+
+            if [[ "${PR_MERGED:-false}" != "true" ]]; then
+              if [[ "$module" == "9" && "$PR_ACTION" == "opened" ]]; then
+                record_pr_marker "gh900-review:$state" $'### Automated training review\n\nThe contribution is intentionally not complete yet. Check that the PR links the temporary Module 9 Issue, make one additional improvement after considering this review, push another commit, then reply in the PR describing what you addressed.'
+              fi
+              if [[ "$module" == "14" ]]; then
+                if [[ ( "$PR_ACTION" == "opened" || "$PR_ACTION" == "converted_to_draft" ) && "${PR_DRAFT:-false}" == "true" ]]; then
+                  record_pr_marker "gh900-draft-seen:$state" $'Draft stage recorded. Inspect Conversation, Commits, Checks, and Files changed before marking this Pull Request ready for review.'
+                fi
+                if [[ "$PR_ACTION" == "ready_for_review" ]]; then
+                  record_pr_marker "gh900-ready-seen:$state" $'Ready-for-review stage recorded. Add the required inline review comment, push the follow-up fix, and complete the merge-strategy reflection before merging.'
+                fi
+              fi
+              exit 0
+            fi
+
+            if validate_activity; then
               advance=true
             else
               exit 1
             fi
 
           elif [[ "$EVENT_NAME" == "workflow_dispatch" ]]; then
-            python3 scripts/course_unit_state.py --unit "$state" --render > /tmp/current.md
+            python3 .gh900/course_unit_state.py --unit "$state" --render > /tmp/current.md
             gh issue comment "$issue_number" --body-file /tmp/current.md
             exit 0
           fi
 
           [[ "$advance" == "true" ]] || exit 0
 
+          cleanup_activity() {
+            [[ "$mode" == "activity" ]] || return 0
+            git push origin --delete "$branch" >/dev/null 2>&1 || true
+            git push origin --delete "$sandbox" >/dev/null 2>&1 || true
+            if [[ "$module" == "15" ]]; then
+              git push origin --delete "fixture/$state" >/dev/null 2>&1 || true
+            fi
+
+            if [[ "$module" == "2" || "$module" == "9" || "$module" == "15" ]]; then
+              tag="[GH-900 $state]"
+              while read -r n; do
+                [[ -n "$n" ]] && gh issue close "$n" --reason completed >/dev/null 2>&1 || true
+              done < <(gh issue list --state open --limit 100 --json number,title \
+                | jq -r --arg tag "$tag" '.[] | select(.title | contains($tag)) | .number')
+            fi
+
+            if [[ "$module" == "9" ]]; then
+              gh label delete "gh900-module-9" --yes >/dev/null 2>&1 || true
+            fi
+
+            if [[ "$module" == "15" ]]; then
+              gh label delete "gh900-history" --yes >/dev/null 2>&1 || true
+              milestone_title="GH-900 $state"
+              milestone_number=$(gh api "repos/$GITHUB_REPOSITORY/milestones?state=all&per_page=100" \
+                --jq ".[] | select(.title == \"$milestone_title\") | .number" 2>/dev/null | head -n 1 || true)
+              if [[ -n "$milestone_number" ]]; then
+                gh api -X DELETE "repos/$GITHUB_REPOSITORY/milestones/$milestone_number" >/dev/null 2>&1 || true
+              fi
+            fi
+          }
+
+          prepare_activity() {
+            local unit="$1"
+            local next_meta next_mode next_branch next_sandbox next_module
+            next_meta=$(python3 .gh900/course_unit_state.py --unit "$unit")
+            next_mode=$(jq -r .mode <<<"$next_meta")
+            [[ "$next_mode" == "activity" ]] || return 0
+            next_branch=$(jq -r .branch <<<"$next_meta")
+            next_sandbox=$(jq -r .sandbox <<<"$next_meta")
+            next_module=$(jq -r .module <<<"$next_meta")
+
+            git fetch origin main
+            git checkout -B main origin/main
+            python3 .gh900/workspace.py clean
+            python3 .gh900/workspace.py prepare --unit "$unit"
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+            git checkout -B "$next_sandbox"
+            git add -A
+            git commit --allow-empty -m "[gh900 setup] $unit"
+            git push --force origin "$next_sandbox"
+
+            if [[ "$next_module" == "15" ]]; then
+              gh label create "gh900-history" --color "8250df" --description "Temporary GH-900 history investigation label" --force >/dev/null
+              milestone_title="GH-900 $unit"
+              milestone_number=$(gh api "repos/$GITHUB_REPOSITORY/milestones?state=all&per_page=100" \
+                --jq ".[] | select(.title == \"$milestone_title\") | .number" 2>/dev/null | head -n 1 || true)
+              if [[ -z "$milestone_number" ]]; then
+                milestone_number=$(gh api -X POST "repos/$GITHUB_REPOSITORY/milestones" -f title="$milestone_title" --jq .number)
+              fi
+
+              history_title="[GH-900 $unit] History regression"
+              existing_issue=$(gh issue list --state all --limit 100 --json number,title \
+                | jq -r --arg title "$history_title" '.[] | select(.title == $title) | .number' | head -n1)
+              if [[ -z "$existing_issue" ]]; then
+                issue_url=$(gh issue create --title "$history_title" --body $'A regression was reported after a recent cache-normalization change. Reconstruct the context using repository search, the related merged Pull Request, commit history, and Blame. Do not guess from this Issue alone.')
+                existing_issue="${issue_url##*/}"
+              fi
+
+              # The fixture branch is generated automatically, but the learner opens
+              # and merges its PR. This keeps the course compatible with the secure
+              # repository setting that prevents GITHUB_TOKEN from creating PRs.
+              fixture_branch="fixture/$unit"
+              git checkout -B "$fixture_branch" "$next_sandbox"
+              printf '%s\n' 'Regression marker: cache keys are no longer normalized before lookup.' >> exercise/history-fixture.txt
+              git add exercise/history-fixture.txt
+              git commit -m "Introduce cache normalization regression"
+              git push --force origin "$fixture_branch"
+              git checkout -B "$next_sandbox" "$next_sandbox"
+            fi
+
+            git checkout -B "$next_branch" "$next_sandbox"
+            git push --force origin "$next_branch"
+
+            if [[ "$next_module" == "9" ]]; then
+              gh label create "gh900-module-9" --color "1f883d" --description "Temporary GH-900 open-source contribution exercise" --force >/dev/null
+              contribution_title="[GH-900 $unit] Open-source contribution practice"
+              if ! gh issue list --state all --limit 100 --json title --jq '.[].title' | grep -Fxq "$contribution_title"; then
+                gh issue create --title "$contribution_title" --label "gh900-module-9" \
+                  --body $'A focused documentation improvement is requested in `exercise/open-source-pr.md`. Before changing it, verify assignment state and comment your intent. Then use the temporary learner branch and Pull Request workflow from the course Issue.' >/dev/null
+              fi
+            fi
+          }
+
           set +e
-          next_meta=$(python3 scripts/course_unit_state.py --unit "$state" --next 2>/dev/null)
+          next_meta=$(python3 .gh900/course_unit_state.py --unit "$state" --next 2>/dev/null)
           next_result=$?
           set -e
+
           if (( next_result == 3 )); then
-            gh issue comment "$issue_number" --body $'## Course complete\n\nYou completed the full official Microsoft Learn GitHub Foundations sequence represented by this course. The repository has recorded all 106 unit checkpoints. Continue with the official GH-900 Practice Assessment and exam-style mocks for final readiness.'
-            new_body=$(printf '%s' "$body" | sed -E "s/<!-- gh900-state:[^>]+ -->/<!-- gh900-state:complete -->/")
-            gh issue edit "$issue_number" --body "$new_body"
+            # Close the course before deleting the final lab. If the close fails, the
+            # old state and activity remain intact for a safe retry.
+            gh issue comment "$issue_number" --body $'## Course complete\n\nYou completed GitHub Foundations Part 1 and Part 2: all 16 modules and all 106 official unit checkpoints represented by this course.'
             gh issue close "$issue_number" --reason completed
+            cleanup_activity
+            new_body=$(printf '%s' "$body" | sed -E "s/<!-- gh900-state:[^>]+ -->/<!-- gh900-state:complete -->/")
+            gh issue edit "$issue_number" --body "$new_body" >/dev/null 2>&1 || true
             exit 0
           fi
 
           next_state=$(jq -r .id <<<"$next_meta")
+
+          # Provision first, then persist the next state, and only then delete the old
+          # exercise. Any failure before the state edit leaves the validated current
+          # activity recoverable; after the edit, cleanup is safe and best-effort.
+          prepare_activity "$next_state"
           new_body=$(printf '%s' "$body" | sed -E "s/<!-- gh900-state:[^>]+ -->/<!-- gh900-state:${next_state} -->/")
           gh issue edit "$issue_number" --body "$new_body"
-          python3 scripts/course_unit_state.py --unit "$next_state" --render > /tmp/next.md
+          cleanup_activity
+
+          python3 .gh900/course_unit_state.py --unit "$next_state" --render > /tmp/next.md
           gh issue comment "$issue_number" --body-file /tmp/next.md

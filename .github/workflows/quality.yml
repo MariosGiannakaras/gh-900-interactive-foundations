@@ -10,51 +10,80 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: course-quality-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   validate:
-    runs-on: ubuntu-latest
+    if: github.event.repository.is_template
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
     steps:
       - name: Check out course repository
-        uses: actions/checkout@v4
-
-      - name: Check out pinned Microsoft Learn source snapshot
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          repository: MicrosoftDocs/learn
-          ref: 66ab07a355b38fb0f5a4cef8240eb2f765c839c8
-          path: _microsoft_learn
-          fetch-depth: 1
-          sparse-checkout: |
-            learn-pr/student-evangelism/intro-to-git
-            learn-pr/github/introduction-to-github
-            learn-pr/github/github-introduction-products
-            learn-pr/github/configure-code-scanning
-            learn-pr/github/introduction-to-github-copilot
-            learn-pr/github/code-with-github-codespaces
-            learn-pr/github/manage-work-github-projects
-            learn-pr/github/communicate-using-markdown
-            learn-pr/github/contribute-open-source
-            learn-pr/github/manage-innersource-program-github
-            learn-pr/github/maintain-secure-repository-github
-            learn-pr/github/github-introduction-administration
-            learn-pr/github/authenticate-authorize-user-identities-github
-            learn-pr/github/manage-changes-pull-requests-github
-            learn-pr/github/search-organize-repository-history-github
+          persist-credentials: false
+
+      - name: Fetch pinned Microsoft Learn source snapshot
+        shell: bash
+        env:
+          MICROSOFT_LEARN_COMMIT: 66ab07a355b38fb0f5a4cef8240eb2f765c839c8
+        run: |
+          set -euo pipefail
+          mkdir _microsoft_learn
+          git -C _microsoft_learn init --quiet
+          git -C _microsoft_learn remote add origin https://github.com/MicrosoftDocs/learn.git
+          git -C _microsoft_learn sparse-checkout init --cone
+          git -C _microsoft_learn sparse-checkout set \
+            learn-pr/student-evangelism/intro-to-git \
+            learn-pr/github/introduction-to-github \
+            learn-pr/github/github-introduction-products \
+            learn-pr/github/configure-code-scanning \
+            learn-pr/github/introduction-to-github-copilot \
+            learn-pr/github/code-with-github-codespaces \
+            learn-pr/github/manage-work-github-projects \
+            learn-pr/github/communicate-using-markdown \
+            learn-pr/github/contribute-open-source \
+            learn-pr/github/manage-innersource-program-github \
+            learn-pr/github/maintain-secure-repository-github \
+            learn-pr/github/github-introduction-administration \
+            learn-pr/github/authenticate-authorize-user-identities-github \
+            learn-pr/github/manage-changes-pull-requests-github \
+            learn-pr/github/search-organize-repository-history-github \
             learn-pr/github/introduction-copilot-python
+          git -C _microsoft_learn -c protocol.version=2 fetch \
+            --no-tags --depth=1 --filter=blob:none origin "$MICROSOFT_LEARN_COMMIT"
+          git -C _microsoft_learn -c advice.detachedHead=false checkout --quiet --detach FETCH_HEAD
+          actual=$(git -C _microsoft_learn rev-parse HEAD)
+          [[ "$actual" == "$MICROSOFT_LEARN_COMMIT" ]] || {
+            echo "Expected Microsoft Learn $MICROSOFT_LEARN_COMMIT, got $actual"
+            exit 1
+          }
 
-      - name: Validate official curriculum inventory
-        run: python3 scripts/check_curriculum_manifest.py
+      - name: Audit public repository and complete 106-unit runtime
+        run: python3 .gh900/quality/audit.py
 
-      - name: Audit complete 16-module interactive course
-        run: python3 scripts/audit_complete_course.py
-
-      - name: Validate full 106-unit runtime chain
-        run: python3 scripts/test_course_runtime.py
+      - name: Audit on-demand workspace fixture contracts
+        run: python3 .gh900/quality/fixture_contracts.py
 
       - name: Audit semantic depth against pinned Microsoft source
-        run: python3 scripts/audit_microsoft_semantic_depth.py
+        run: python3 .gh900/quality/semantic.py
 
-      - name: Parse workflow YAML files
+      - name: Compile runtime and quality helpers
+        run: >-
+          python3 -m py_compile
+          .gh900/course_unit_state.py
+          .gh900/workspace.py
+          .gh900/validate_activity.py
+          .gh900/validate_activity_core.py
+          .gh900/validate_assessment.py
+          .gh900/validate_scenario.py
+          .gh900/quality/audit.py
+          .gh900/quality/fixture_contracts.py
+          .gh900/quality/semantic.py
+
+      - name: Parse workflow YAML
         shell: bash
         run: |
           ruby <<'RUBY'
@@ -74,7 +103,7 @@ jobs:
 
           failures = []
           Dir[".github/workflows/*.{yml,yaml}"].each do |file|
-            data = YAML.load_file(file)
+            data = YAML.safe_load_file(file, aliases: true)
             (data["jobs"] || {}).each do |job_name, job|
               (job["steps"] || []).each_with_index do |step, index|
                 script = step["run"]
@@ -100,58 +129,55 @@ jobs:
           puts "All Bash/default-shell workflow run blocks parse successfully."
           RUBY
 
-      - name: Compile Python validators and course engine helpers
-        run: >-
-          python3 -m py_compile
-          scripts/check_curriculum_manifest.py
-          scripts/audit_complete_course.py
-          scripts/audit_microsoft_semantic_depth.py
-          scripts/course_unit_state.py
-          scripts/test_course_runtime.py
-          scripts/validate_unit_activity.py
-          scripts/validate_module_01.py
-          scripts/validate_course_module.py
-
-      - name: Confirm untouched Module 1 assessment is rejected
+      - name: Confirm malformed assessments are rejected
         shell: bash
         run: |
-          set +e
-          python3 scripts/validate_module_01.py
-          result=$?
-          set -e
-          if [[ "$result" -ne 2 ]]; then
-            echo "Expected untouched Module 1 assessment to fail with exit code 2, got $result."
-            exit 1
-          fi
-
-      - name: Confirm untouched Modules 2-16 submissions are rejected
-        shell: bash
-        run: |
-          for n in $(seq 2 16); do
+          set -euo pipefail
+          for module in $(seq 1 16); do
             set +e
-            python3 scripts/validate_course_module.py --module "$n" >/tmp/module-result.txt 2>&1
+            python3 .gh900/validate_assessment.py --module "$module" --answers "A" >/tmp/assessment.txt 2>&1
             result=$?
             set -e
             if [[ "$result" -eq 0 ]]; then
-              echo "Untouched Module $n unexpectedly passed assessment validation."
-              cat /tmp/module-result.txt
+              echo "Malformed Module $module assessment unexpectedly passed."
+              cat /tmp/assessment.txt
               exit 1
             fi
           done
-          echo "All untouched assessments are correctly rejected."
+          echo "All malformed assessments are rejected."
 
-      - name: Confirm untouched hands-on checkpoints are rejected
+      - name: Confirm shallow scenarios are rejected
         shell: bash
         run: |
-          for n in $(seq 1 16); do
+          set -euo pipefail
+          for unit in m03-u07 m07-u06 m12-u05 m13-u05; do
             set +e
-            python3 scripts/validate_unit_activity.py --module "$n" >/tmp/activity-result.txt 2>&1
+            python3 .gh900/validate_scenario.py --unit "$unit" --response "too short" >/tmp/scenario.txt 2>&1
             result=$?
             set -e
             if [[ "$result" -eq 0 ]]; then
-              echo "Untouched Module $n unexpectedly passed hands-on validation."
-              cat /tmp/activity-result.txt
+              echo "Shallow scenario $unit unexpectedly passed."
+              cat /tmp/scenario.txt
               exit 1
             fi
           done
-          echo "All untouched hands-on checkpoints are correctly rejected."
+          echo "All shallow scenario responses are rejected."
+
+      - name: Confirm unprepared hands-on states are rejected
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 .gh900/course_unit_state.py --list-json \
+            | jq -r '.[] | select(.mode == "activity") | .id' \
+            | while read -r unit; do
+                set +e
+                python3 .gh900/validate_activity.py --unit "$unit" >/tmp/activity.txt 2>&1
+                result=$?
+                set -e
+                if [[ "$result" -eq 0 ]]; then
+                  echo "Unprepared activity $unit unexpectedly passed."
+                  cat /tmp/activity.txt
+                  exit 1
+                fi
+              done
+          echo "All unprepared hands-on states are rejected."

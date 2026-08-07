@@ -1,0 +1,98 @@
+{
+  "01": {
+    "part": 1,
+    "title": "Introduction to Git",
+    "readme": ".gh900/content/part-1/01-introduction-to-git/README.md",
+    "detail": null
+  },
+  "02": {
+    "part": 1,
+    "title": "Introduction to GitHub",
+    "readme": ".gh900/content/part-1/02-introduction-to-github/README.md",
+    "detail": ".gh900/details/part-1/m02.md"
+  },
+  "03": {
+    "part": 1,
+    "title": "Introduction to GitHub's products",
+    "readme": ".gh900/content/part-1/03-github-products/README.md",
+    "detail": ".gh900/details/part-1/m03.md"
+  },
+  "04": {
+    "part": 1,
+    "title": "Configure code scanning on GitHub",
+    "readme": ".gh900/content/part-1/04-code-scanning/README.md",
+    "detail": ".gh900/details/part-1/m04.md"
+  },
+  "05": {
+    "part": 1,
+    "title": "Introduction to GitHub Copilot",
+    "readme": ".gh900/content/part-1/05-github-copilot/README.md",
+    "detail": ".gh900/details/part-1/m05.md"
+  },
+  "06": {
+    "part": 1,
+    "title": "Code with GitHub Codespaces",
+    "readme": ".gh900/content/part-1/06-github-codespaces/README.md",
+    "detail": ".gh900/details/part-1/m06.md"
+  },
+  "07": {
+    "part": 1,
+    "title": "Manage your work with GitHub Projects",
+    "readme": ".gh900/content/part-1/07-github-projects/README.md",
+    "detail": ".gh900/details/part-1/m07.md"
+  },
+  "08": {
+    "part": 1,
+    "title": "Communicate effectively on GitHub using Markdown",
+    "readme": ".gh900/content/part-1/08-markdown/README.md",
+    "detail": ".gh900/details/part-1/m08.md"
+  },
+  "09": {
+    "part": 2,
+    "title": "Contribute to an open-source project on GitHub",
+    "readme": ".gh900/content/part-2/09-open-source/README.md",
+    "detail": ".gh900/details/part-2/m09.md"
+  },
+  "10": {
+    "part": 2,
+    "title": "Manage an InnerSource program by using GitHub",
+    "readme": ".gh900/content/part-2/10-innersource/README.md",
+    "detail": ".gh900/details/part-2/m10.md"
+  },
+  "11": {
+    "part": 2,
+    "title": "Maintain a secure repository by using GitHub best practices",
+    "readme": ".gh900/content/part-2/11-secure-repository/README.md",
+    "detail": ".gh900/details/part-2/m11.md"
+  },
+  "12": {
+    "part": 2,
+    "title": "Introduction to GitHub administration",
+    "readme": ".gh900/content/part-2/12-github-administration/README.md",
+    "detail": ".gh900/details/part-2/m12.md"
+  },
+  "13": {
+    "part": 2,
+    "title": "Authenticate and authorize user identities on GitHub",
+    "readme": ".gh900/content/part-2/13-authentication-authorization/README.md",
+    "detail": ".gh900/details/part-2/m13.md"
+  },
+  "14": {
+    "part": 2,
+    "title": "Manage repository changes by using pull requests on GitHub",
+    "readme": ".gh900/content/part-2/14-pull-requests/README.md",
+    "detail": ".gh900/details/part-2/m14.md"
+  },
+  "15": {
+    "part": 2,
+    "title": "Search and organize repository history by using GitHub",
+    "readme": ".gh900/content/part-2/15-search-history/README.md",
+    "detail": ".gh900/details/part-2/m15.md"
+  },
+  "16": {
+    "part": 2,
+    "title": "Using GitHub Copilot with Python",
+    "readme": ".gh900/content/part-2/16-copilot-python/README.md",
+    "detail": ".gh900/details/part-2/m16.md"
+  }
+}
