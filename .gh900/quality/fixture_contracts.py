@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 import re
 import sys
 from pathlib import Path
@@ -13,6 +14,7 @@ TEMPLATES = GH900 / "templates"
 sys.path.insert(0, str(GH900))
 
 import course_unit_state as state  # noqa: E402
+import validate_activity as activity_validator  # noqa: E402
 import validate_assessment as assessment_validator  # noqa: E402
 
 EXPECTED_ACTIVITY_MODULES = {1, 2, 4, 5, 6, 8, 9, 10, 11, 14, 15, 16}
@@ -23,6 +25,54 @@ LEGACY_ASSESSMENT_MARKERS = (
     "Read `modules/",
     "Work on branch `lab/module-",
 )
+
+
+def check_merged_pr_event_lookup(errors: list[str]) -> None:
+    """Closed+merged PR events must not depend on the eventually-consistent PR list."""
+    original_gh_json = activity_validator.core.gh_json
+    original_pr_number = os.environ.get("PR_NUMBER")
+    original_actions = os.environ.get("GITHUB_ACTIONS")
+    calls: list[list[str]] = []
+
+    def fake_gh_json(args: list[str]) -> object | None:
+        calls.append(args)
+        if args[:3] == ["pr", "view", "42"]:
+            return {
+                "number": 42,
+                "state": "MERGED",
+                "mergedAt": "2026-08-07T10:04:49Z",
+                "headRefName": "lab/m02-u06",
+                "baseRefName": "sandbox/m02-u06",
+                "body": "Closes #3",
+                "comments": [],
+                "commits": [],
+                "mergeCommit": {"oid": "deadbeef"},
+            }
+        if args[:2] == ["pr", "list"]:
+            return []
+        return None
+
+    try:
+        os.environ["GITHUB_ACTIONS"] = "true"
+        os.environ["PR_NUMBER"] = "42"
+        activity_validator.core.gh_json = fake_gh_json
+        result = activity_validator.merged_pr_for_unit("m02-u06")
+        if not isinstance(result, dict) or result.get("number") != 42:
+            errors.append("Merged PR closed-event lookup did not resolve the exact event PR")
+        if not calls or calls[0][:3] != ["pr", "view", "42"]:
+            errors.append("Merged PR lookup must query the exact event PR before the merged PR list")
+        if any(call[:2] == ["pr", "list"] for call in calls):
+            errors.append("Merged PR lookup unnecessarily fell back to the merged PR list after an exact event match")
+    finally:
+        activity_validator.core.gh_json = original_gh_json
+        if original_pr_number is None:
+            os.environ.pop("PR_NUMBER", None)
+        else:
+            os.environ["PR_NUMBER"] = original_pr_number
+        if original_actions is None:
+            os.environ.pop("GITHUB_ACTIONS", None)
+        else:
+            os.environ["GITHUB_ACTIONS"] = original_actions
 
 
 def main() -> int:
@@ -112,6 +162,11 @@ def main() -> int:
         if not path.exists():
             errors.append(f"Module 16 FastAPI fixture is missing {path.relative_to(ROOT)}")
 
+    # pull_request.closed can arrive before `gh pr list --state merged` catches up.
+    # The exact event PR must be sufficient evidence when its head/base and merge
+    # state match the current unit.
+    check_merged_pr_event_lookup(errors)
+
     # Runtime anti-stall/idempotency contracts. These are deliberately text-level so
     # a future refactor cannot silently remove the safeguards without replacing them.
     start = (ROOT / ".github" / "workflows" / "00-start-course.yml").read_text(encoding="utf-8")
@@ -144,7 +199,8 @@ def main() -> int:
 
     print(
         f"Fixture/runtime contracts passed: {len(calls)} copied fixtures, 12 activity modules, "
-        "16 clean assessments with complete/decodable hash coverage, serialized/self-healing runtime."
+        "16 clean assessments with complete/decodable hash coverage, serialized/self-healing runtime, "
+        "race-safe merged-PR validation."
     )
     return 0
 
