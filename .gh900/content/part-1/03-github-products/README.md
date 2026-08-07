@@ -319,9 +319,7 @@ Official unit: <https://learn.microsoft.com/en-us/training/modules/github-introd
 
 After this module you should be able to choose the correct account/plan concept for a scenario, identify the appropriate client surface, and explain how GitHub billing and enterprise usage reporting fit together.
 
-## Hands-on/simulation layer
-
-Because changing real paid plans or enterprise licensing solely for training would be inappropriate, this module uses an interactive **billing and account architecture simulation**. You will classify scenarios, inspect this public repository's current plan-independent features, and produce a small `account-plan-decisions.md` artifact that the course engine validates.
+The current interactive adaptation is the structured `/scenario` checkpoint in Unit 7. It does not create a fake billing worksheet or require a paid plan.
 
 ## Official references
 
