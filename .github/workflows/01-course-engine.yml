@@ -32,8 +32,7 @@ jobs:
          github.event.pull_request.author_association == 'MEMBER' ||
          github.event.pull_request.author_association == 'COLLABORATOR'))) &&
       (github.event_name != 'issue_comment' ||
-       (github.event.issue.title == 'GH-900 Interactive Foundations — Course' &&
-        github.event.comment.user.type != 'Bot' &&
+       (github.event.comment.user.type != 'Bot' &&
         (github.event.comment.author_association == 'OWNER' ||
          github.event.comment.author_association == 'MEMBER' ||
          github.event.comment.author_association == 'COLLABORATOR')))
@@ -50,7 +49,7 @@ jobs:
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
-          COURSE_TITLE: "GH-900 Interactive Foundations — Course"
+          COURSE_MARKER: "<!-- gh900-course -->"
           EVENT_NAME: ${{ github.event_name }}
           COMMENT_ID: ${{ github.event.comment.id }}
           COMMENT_BODY: ${{ github.event.comment.body }}
@@ -66,8 +65,11 @@ jobs:
         run: |
           set -euo pipefail
 
-          row=$(gh issue list --state all --limit 1000 --json number,title,state \
-            | jq -r --arg title "$COURSE_TITLE" '.[] | select(.title == $title) | [.number,.state] | @tsv' \
+          # Protocol identity comes from the hidden body marker, not the learner-visible
+          # title. Renaming the course Issue must not disable /help or progression.
+          issues=$(gh issue list --state all --limit 1000 --json number,state,body)
+          row=$(jq -r --arg marker "$COURSE_MARKER" \
+            '.[] | select((.body // "") | contains($marker)) | [.number,.state] | @tsv' <<<"$issues" \
             | head -n 1)
           [[ -n "$row" ]] || { echo "Course Issue does not exist yet."; exit 0; }
           issue_number=$(printf '%s' "$row" | cut -f1)
@@ -108,8 +110,9 @@ jobs:
               return 0
             }
             if ! jq -e --arg marker "<!-- gh900-unit:${state} -->" \
-              'add | any(.[]; ((.body // "") | contains($marker)))' /tmp/course-comments.json >/dev/null; then
-              echo "Current state has no rendered lesson; restoring it idempotently."
+              '(add // []) | any(.[]; (.user.login == "github-actions[bot]") and (((.body // "") | contains($marker))))' \
+              /tmp/course-comments.json >/dev/null; then
+              echo "Current state has no authoritative rendered lesson; restoring it idempotently."
               render_current
               load_course_comments || true
             fi
@@ -167,15 +170,16 @@ jobs:
             fi
           }
 
-          # A command/evidence response belongs to the lesson marker that immediately
-          # preceded it. This makes queued duplicate comments and old responses harmless.
+          # A command/evidence response belongs to the authoritative automation lesson
+          # marker that immediately preceded it. Learner-authored marker lookalikes are
+          # ignored, making queued duplicates and protocol spoofing harmless.
           comment_matches_current_unit() {
             [[ "$EVENT_NAME" == "issue_comment" ]] || return 0
             [[ -n "${COMMENT_ID:-}" ]] || return 1
             [[ -s /tmp/course-comments.json ]] || load_course_comments || return 1
             preceding=$(jq -r --argjson id "$COMMENT_ID" '
-              add
-              | map(select((.id < $id) and ((.body // "") | test("<!--\\s*gh900-unit:m[0-9]{2}-u[0-9]{2}\\s*-->"))))
+              (add // [])
+              | map(select((.id < $id) and (.user.login == "github-actions[bot]") and ((.body // "") | test("<!--\\s*gh900-unit:m[0-9]{2}-u[0-9]{2}\\s*-->"))))
               | last
               | .body // ""
             ' /tmp/course-comments.json)
