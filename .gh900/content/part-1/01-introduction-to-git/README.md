@@ -36,7 +36,7 @@ The module's core mental model is that Git lets you build a reliable history, in
 
 The official exercise assumes Git is already installed. If you need Git on your own computer, use the installation guidance at <https://git-scm.com/> rather than relying on a platform-specific shortcut.
 
-Our interactive lab can be completed in a GitHub Codespace or a local clone. Codespaces provides Git and VS Code in a browser, while a local clone lets you use the same Git commands on your own machine.
+The interactive exercise can be completed in a GitHub Codespace or a local clone. Codespaces provides Git and VS Code in a browser, while a local clone lets you use the same Git commands on your own machine.
 
 ---
 
@@ -195,7 +195,7 @@ git config --local user.name "Your Name"
 git config --local user.email "your-address-or-noreply-address"
 ```
 
-Our lab recommends local settings so the training exercise does not unintentionally change unrelated repositories.
+The course recommends local settings so the training exercise does not unintentionally change unrelated repositories.
 
 ### C. Create vs clone a repository
 
@@ -369,6 +369,8 @@ A common collaboration sequence is:
 
 Git is distributed, so collaboration means synchronizing work between repository copies. Git hosting platforms make that synchronization and review much easier.
 
+The course turns this official exercise into a temporary `lab/m01-u03` workspace. Durable repository evidence—changed fixtures, multiple commits, and a visible merge commit—is validated automatically. Display-only actions such as opening `git help` or reading `git log` remain explicit required steps because repository automation cannot honestly prove private terminal viewing without intrusive telemetry.
+
 ---
 
 ## Unit 4 — Basic Git commands
@@ -482,20 +484,3 @@ After completion you should be able to explain and demonstrate:
 - Official linked GitHub exercise: <https://github.com/skills/introduction-to-git>
 - Git documentation: <https://git-scm.com/doc>
 - GitHub Git documentation: <https://docs.github.com/en/get-started/using-git/about-git>
-
----
-
-## Interactive course flow
-
-The Actions-driven course issue guides you through durable checkpoints while also requiring terminal actions that cannot be observed remotely:
-
-1. Create `lab/module-01-git`.
-2. Verify Git, inspect/configure identity, use status/add/commit, and create the first lab snapshot.
-3. Inspect history with several `git log` forms and temporarily checkout an earlier state before returning to the lab branch.
-4. Practice `git diff`, `git diff --staged`, and create another commit.
-5. Create a feature branch, make feature work, merge it back with a visible merge commit, inspect the graph, and delete the temporary branch pointer.
-6. Review clone/push/pull/pull-request collaboration concepts.
-7. Complete the original assessment without an exposed answer key.
-8. Read the summary and close the module.
-
-GitHub Actions validates durable repository evidence. Commands that only display information, such as opening `git help` or inspecting `git log`, cannot be proven remotely without intrusive telemetry, so they remain explicit required steps rather than pretending they were automatically verified.
