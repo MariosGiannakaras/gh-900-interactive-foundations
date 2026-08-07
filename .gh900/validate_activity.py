@@ -3,8 +3,8 @@
 
 The large module-specific implementation lives in validate_activity_core.py. This
 entrypoint adds cross-cutting checks for complete Issue-comment pagination, unit-scoped
-learner evidence, and direct behavior validation of generated Python exercises while
-preserving the core module logic.
+learner evidence, race-safe merged-PR lookup, and direct behavior validation of
+generated Python exercises while preserving the core module logic.
 """
 from __future__ import annotations
 
@@ -70,6 +70,36 @@ def course_comment_bodies(prefix: str) -> list[str]:
     if not CURRENT_UNIT:
         return []
     return runtime_protocol.bodies_for_unit(_course_comments(), prefix, CURRENT_UNIT)
+
+
+def merged_pr_for_unit(unit: str) -> dict[str, object] | None:
+    """Resolve a merged training PR without racing GitHub's merged-PR list index.
+
+    During a ``pull_request.closed`` event GitHub already gives the engine the exact
+    PR number. Query that PR directly first; the generic merged list remains the
+    durable fallback for /check and later unrelated events.
+    """
+    head = f"lab/{unit}"
+    base = f"sandbox/{unit}"
+    pr_number = os.environ.get("PR_NUMBER", "").strip()
+
+    if pr_number:
+        data = core.gh_json(
+            [
+                "pr", "view", pr_number,
+                "--json",
+                "number,title,state,mergedAt,headRefName,baseRefName,body,comments,commits,mergeCommit",
+            ]
+        )
+        if (
+            isinstance(data, dict)
+            and data.get("headRefName") == head
+            and data.get("baseRefName") == base
+            and (data.get("mergedAt") or str(data.get("state", "")).upper() == "MERGED")
+        ):
+            return data
+
+    return core._merged_pr_for_unit_original(unit)
 
 
 def _run_python(code: str, cwd: Path) -> tuple[bool, str]:
@@ -142,11 +172,13 @@ def validate_module16(unit: str, errors: list[str]) -> None:
 # Preserve original implementations, then install the hardened contracts into the
 # core module's global namespace. Functions defined in the core resolve these names
 # at call time, so all existing module validators inherit the fixes.
+core._merged_pr_for_unit_original = core.merged_pr_for_unit
 core._validate_module5_original = core.validate_module5
 core._validate_module8_original = core.validate_module8
 core._validate_module14_original = core.validate_module14
 core._validate_module16_original = core.validate_module16
 core.course_comment_bodies = course_comment_bodies
+core.merged_pr_for_unit = merged_pr_for_unit
 core.validate_module5 = validate_module5
 core.validate_module8 = validate_module8
 core.validate_module14 = validate_module14
