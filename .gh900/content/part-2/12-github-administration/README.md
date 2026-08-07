@@ -257,6 +257,8 @@ Policy should be applied at the highest appropriate scope to reduce inconsistent
 
 Administration should preserve clear attribution and reviewable history. Prefer named users, GitHub Apps, Actions identities, and scoped service authentication over shared human credentials.
 
+The interactive adaptation for this unit is a structured `/scenario` decision. Learners with suitable organization/enterprise access may inspect the corresponding settings in the UI, while everyone can complete the same scope/role/least-privilege reasoning without buying Enterprise or changing a real company's policy. No role matrix or governance worksheet is generated.
+
 ---
 
 ## Unit 6 — Module assessment
@@ -283,22 +285,6 @@ The assessment covers:
 Official unit: <https://learn.microsoft.com/en-us/training/modules/github-introduction-administration/7-summary>
 
 After this module you should be able to design a basic GitHub administrative model for a team, organization, or enterprise and choose appropriate identity/access controls.
-
-## Interactive lab / enterprise simulation
-
-This module intentionally does **not** ask learners to buy GitHub Enterprise or configure a real corporate IdP.
-
-The learner completes:
-
-1. a repository-role assignment matrix;
-2. a team/nested-team design;
-3. an outside-collaborator scenario;
-4. a PAT vs SSH vs deploy-key decision exercise;
-5. a SAML/SCIM/EMU architecture diagram;
-6. a least-privilege review;
-7. a governance-policy worksheet.
-
-Where the learner owns an organization, they may additionally inspect real member/team/repository role screens, but this is optional and no destructive changes are required.
 
 ## Official references
 
