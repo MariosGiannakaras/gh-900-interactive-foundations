@@ -20,8 +20,8 @@ FORBIDDEN = {
     "## Interactive identity simulation": "obsolete identity simulation block",
     "## Hands-on/simulation layer": "obsolete simulation block",
     "account-plan-decisions.md": "obsolete billing worksheet",
-    "project-report.md": "obsolete Projects worksheet",
-    "history-investigation.md": "obsolete history worksheet",
+    "labs/module-07/project-report.md": "obsolete Projects worksheet path",
+    "labs/module-15/history-investigation.md": "obsolete history worksheet path",
     "then asks the learner to use the same Markdown in an Issue comment": "obsolete duplicate Markdown submission step",
 }
 
