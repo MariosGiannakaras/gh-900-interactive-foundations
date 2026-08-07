@@ -39,6 +39,7 @@ Permanent learner-visible content is essentially:
 
 ```text
 README.md
+LICENSE
 .github/workflows/   # course automation
 .gh900/              # internal course engine
 ```
