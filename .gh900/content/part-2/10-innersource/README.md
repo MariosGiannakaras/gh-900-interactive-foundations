@@ -202,20 +202,18 @@ Distribute it through an organization `.github` repository, repository templates
 
 Official unit: <https://learn.microsoft.com/en-us/training/modules/manage-innersource-program-github/3-exercise-innersource-fundamentals>
 
-The integrated exercise turns this course repository into a sample InnerSource project.
+The interactive exercise creates a temporary InnerSource workspace only for this unit. On `lab/m10-u03`, complete:
 
-On `lab/module-10-innersource`, the learner will create/complete:
+- `exercise/README-sample.md`;
+- `exercise/CONTRIBUTING.md`;
+- `exercise/CODEOWNERS`;
+- `exercise/ISSUE_TEMPLATE/feature.yml`;
+- `exercise/PULL_REQUEST_TEMPLATE.md`;
+- `exercise/discoverability-plan.md`;
+- `exercise/access-visibility-matrix.md`;
+- `exercise/success-metrics.md`.
 
-- `labs/module-10/README-sample.md`;
-- `labs/module-10/CONTRIBUTING.md`;
-- `labs/module-10/CODEOWNERS`;
-- an Issue template/form;
-- a PR template;
-- a repository-discoverability plan;
-- an access/visibility scenario matrix;
-- an InnerSource success-metrics plan.
-
-The engine checks that each artifact covers the required official concepts.
+The engine validates that every artifact addresses its required InnerSource concepts, then removes the temporary learner/sandbox branches after completion.
 
 ---
 
