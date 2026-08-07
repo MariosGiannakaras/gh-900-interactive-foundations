@@ -19,6 +19,9 @@ EXPECTED_MODULE_UNITS = {
     1: 6, 2: 8, 3: 9, 4: 7, 5: 7, 6: 7, 7: 8, 8: 5,
     9: 7, 10: 5, 11: 6, 12: 7, 13: 7, 14: 5, 15: 5, 16: 7,
 }
+APPROVED_ACTION_PINS = {
+    "actions/checkout": "3d3c42e5aac5ba805825da76410c181273ba90b1",
+}
 ALLOWED_TOP_LEVEL = {".gh900", ".github", "LICENSE", "README.md"}
 SOURCE_ONLY_FORBIDDEN = {
     "modules", "unit-details", "labs", "curriculum", "scripts", "docs",
@@ -51,9 +54,16 @@ def check_workflows(errors: list[str]) -> None:
             if "@" not in ref:
                 error(errors, f"{path.relative_to(ROOT)} has malformed action reference: {ref}")
                 continue
-            _, version = ref.rsplit("@", 1)
+            action, version = ref.rsplit("@", 1)
             if not re.fullmatch(r"[0-9a-f]{40}", version):
                 error(errors, f"{path.relative_to(ROOT)} must pin external Actions to a full commit SHA: {ref}")
+                continue
+            approved = APPROVED_ACTION_PINS.get(action)
+            if approved and version != approved:
+                error(
+                    errors,
+                    f"{path.relative_to(ROOT)} must use the verified {action} pin {approved}, got {version}",
+                )
 
     start = (workflows / "00-start-course.yml").read_text(encoding="utf-8")
     engine = (workflows / "01-course-engine.yml").read_text(encoding="utf-8")
