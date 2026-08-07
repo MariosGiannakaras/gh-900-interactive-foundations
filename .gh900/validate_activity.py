@@ -3,8 +3,8 @@
 
 The large module-specific implementation lives in validate_activity_core.py. This
 entrypoint adds cross-cutting checks for complete Issue-comment pagination, unit-scoped
-learner evidence, race-safe merged-PR lookup, and direct behavior validation of
-generated Python exercises while preserving the core module logic.
+learner evidence, race-safe/durable merged-PR lookup, and direct behavior validation
+of generated Python exercises while preserving the core module logic.
 """
 from __future__ import annotations
 
@@ -72,12 +72,75 @@ def course_comment_bodies(prefix: str) -> list[str]:
     return runtime_protocol.bodies_for_unit(_course_comments(), prefix, CURRENT_UNIT)
 
 
-def merged_pr_for_unit(unit: str) -> dict[str, object] | None:
-    """Resolve a merged training PR without racing GitHub's merged-PR list index.
+def _normalize_rest_pr(row: dict[str, object]) -> dict[str, object]:
+    """Convert GitHub REST PR fields to the shape used by existing validators."""
+    repo = os.environ.get("GITHUB_REPOSITORY", "")
+    number = int(row.get("number", 0) or 0)
+    comments_raw = core.gh_api_json(f"repos/{repo}/issues/{number}/comments?per_page=100") if repo and number else []
+    commits_raw = core.gh_api_json(f"repos/{repo}/pulls/{number}/commits?per_page=100") if repo and number else []
 
-    During a ``pull_request.closed`` event GitHub already gives the engine the exact
-    PR number. Query that PR directly first; the generic merged list remains the
-    durable fallback for /check and later unrelated events.
+    comments: list[dict[str, object]] = []
+    if isinstance(comments_raw, list):
+        for comment in comments_raw:
+            if not isinstance(comment, dict):
+                continue
+            user = comment.get("user") if isinstance(comment.get("user"), dict) else {}
+            comments.append(
+                {
+                    "body": str(comment.get("body", "")),
+                    "author": {"login": str(user.get("login", ""))},
+                }
+            )
+
+    commits: list[dict[str, object]] = []
+    if isinstance(commits_raw, list):
+        for commit in commits_raw:
+            if isinstance(commit, dict) and commit.get("sha"):
+                commits.append({"oid": str(commit["sha"])})
+
+    head = row.get("head") if isinstance(row.get("head"), dict) else {}
+    base = row.get("base") if isinstance(row.get("base"), dict) else {}
+    merge_sha = str(row.get("merge_commit_sha", "") or "")
+    return {
+        "number": number,
+        "title": str(row.get("title", "")),
+        "state": "MERGED" if row.get("merged_at") else str(row.get("state", "")).upper(),
+        "mergedAt": row.get("merged_at"),
+        "headRefName": str(head.get("ref", "")),
+        "baseRefName": str(base.get("ref", "")),
+        "body": str(row.get("body", "") or ""),
+        "comments": comments,
+        "commits": commits,
+        "mergeCommit": {"oid": merge_sha} if merge_sha else None,
+    }
+
+
+def _rest_merged_pr_for_unit(unit: str) -> dict[str, object] | None:
+    """Use the repository REST PR record as durable evidence for manual recovery."""
+    repo = os.environ.get("GITHUB_REPOSITORY", "")
+    if not repo or not os.environ.get("GITHUB_ACTIONS"):
+        return None
+    rows = core.gh_api_json(f"repos/{repo}/pulls?state=closed&per_page=100")
+    if not isinstance(rows, list):
+        return None
+    head = f"lab/{unit}"
+    base = f"sandbox/{unit}"
+    for row in rows:
+        if not isinstance(row, dict) or not row.get("merged_at"):
+            continue
+        row_head = row.get("head") if isinstance(row.get("head"), dict) else {}
+        row_base = row.get("base") if isinstance(row.get("base"), dict) else {}
+        if row_head.get("ref") == head and row_base.get("ref") == base:
+            return _normalize_rest_pr(row)
+    return None
+
+
+def merged_pr_for_unit(unit: str) -> dict[str, object] | None:
+    """Resolve a merged training PR without relying on one eventually-consistent view.
+
+    During ``pull_request.closed`` the exact event PR is authoritative. For `/check`
+    and later events, the repository REST pull-request record is the durable fallback.
+    The legacy merged-list lookup remains only as a final compatibility fallback.
     """
     head = f"lab/{unit}"
     base = f"sandbox/{unit}"
@@ -99,6 +162,9 @@ def merged_pr_for_unit(unit: str) -> dict[str, object] | None:
         ):
             return data
 
+    durable = _rest_merged_pr_for_unit(unit)
+    if durable:
+        return durable
     return core._merged_pr_for_unit_original(unit)
 
 
