@@ -136,24 +136,20 @@ GitHub's command palette can be opened with `Ctrl+K` on Windows/Linux or `⌘+K`
 
 Official unit: <https://learn.microsoft.com/en-us/training/modules/manage-changes-pull-requests-github/3-review-pull-requests>
 
-The integrated course creates a real review workflow in the learner's own fork.
+The interactive course creates a real, isolated review workflow using `lab/m14-u03` → `sandbox/m14-u03`; the exercise never targets learner `main`.
 
-The learner will:
+The learner:
 
-1. create `lab/module-14-pull-requests`;
-2. modify the supplied review fixture;
-3. commit/push multiple commits;
-4. open a **draft PR** against `main`;
-5. inspect Conversation, Commits, Checks, and Files changed;
-6. mark the PR ready for review;
-7. add an inline review comment to the provided intentional defect;
-8. update the source branch to resolve it;
-9. inspect the resulting diff/check state;
-10. compare merge commit/squash/rebase implications in the worksheet;
-11. use the repository's required merge method for the training PR;
-12. delete the merged source branch when instructed.
+1. makes multiple commits while fixing the intentional defect in `exercise/review_fixture.py` and keeping `exercise/test_review_fixture.py` passing;
+2. opens the Pull Request from `lab/m14-u03` into `sandbox/m14-u03` as a **draft**;
+3. inspects **Conversation**, **Commits**, **Checks**, and **Files changed**;
+4. marks the PR **Ready for review**;
+5. adds an inline review comment on the changed code/intentional defect;
+6. pushes a follow-up update resolving the review point and inspects the updated diff/check state;
+7. posts a unit-scoped `/reflection ...` comparing merge-commit, squash, and rebase implications for history;
+8. merges the temporary training PR using an allowed merge method.
 
-The course engine watches PR state and will not advance merely because a branch exists.
+The engine records draft/ready transitions, verifies the real PR/review/commit/test state, and cleans the temporary branches after successful validation. No merge-strategy worksheet is created.
 
 ---
 
