@@ -114,7 +114,7 @@ GitHub may expose experimental or preview functionality through feature-preview 
 
 ### Repository insights
 
-Repository **Insights** can expose activity and repository-management information such as contributors, traffic, dependency/network information, community health, or other analytics depending on repository type and permissions. Stars are a public signal that users want to bookmark or show interest in a repository; they are not the same as a permission or subscription. Dependency insights help maintainers understand the software supply chain and related security/maintenance context.
+Repository **Insights** can expose activity and repository-management information such as contributors, traffic, dependency/network information, community health, or other analytics depending on repository type and permissions. These repository metrics and dashboard-style views help maintainers interpret activity and health rather than treating a single raw count as the whole picture. Stars are a public signal that users want to bookmark or show interest in a repository; they are not the same as a permission or subscription. Dependency insights help maintainers understand the software supply chain and related security/maintenance context.
 
 ---
 
