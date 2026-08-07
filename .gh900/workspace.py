@@ -23,7 +23,20 @@ VISIBLE_CLEANUP = [
 ]
 
 
+def clean_runtime_caches() -> None:
+    """Keep interpreter bytecode out of generated learner branches."""
+    internal = ROOT / ".gh900"
+    if not internal.exists():
+        return
+    caches = sorted(internal.rglob("__pycache__"), key=lambda p: len(p.parts), reverse=True)
+    for cache in caches:
+        shutil.rmtree(cache, ignore_errors=True)
+    for compiled in list(internal.rglob("*.pyc")) + list(internal.rglob("*.pyo")):
+        compiled.unlink(missing_ok=True)
+
+
 def clean_visible() -> None:
+    clean_runtime_caches()
     for path in VISIBLE_CLEANUP:
         if path.is_dir():
             shutil.rmtree(path)

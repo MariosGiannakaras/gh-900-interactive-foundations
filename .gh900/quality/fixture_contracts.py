@@ -16,6 +16,7 @@ sys.path.insert(0, str(GH900))
 import course_unit_state as state  # noqa: E402
 import validate_activity as activity_validator  # noqa: E402
 import validate_assessment as assessment_validator  # noqa: E402
+import workspace as workspace_manager  # noqa: E402
 
 EXPECTED_ACTIVITY_MODULES = {1, 2, 4, 5, 6, 8, 9, 10, 11, 14, 15, 16}
 LEGACY_ASSESSMENT_MARKERS = (
@@ -73,6 +74,28 @@ def check_merged_pr_event_lookup(errors: list[str]) -> None:
             os.environ.pop("GITHUB_ACTIONS", None)
         else:
             os.environ["GITHUB_ACTIONS"] = original_actions
+
+
+def check_runtime_cache_cleanup(errors: list[str]) -> None:
+    """Generated learner branches must never capture interpreter bytecode."""
+    cache_dir = GH900 / "__pycache__"
+    cache_dir.mkdir(parents=True, exist_ok=True)
+    cached = cache_dir / "gh900-fixture.cpython-312.pyc"
+    loose = GH900 / "gh900-fixture.pyc"
+    cached.write_bytes(b"test-bytecode")
+    loose.write_bytes(b"test-bytecode")
+    try:
+        workspace_manager.clean_runtime_caches()
+    except Exception as exc:
+        errors.append(f"Runtime cache cleanup raised unexpectedly: {exc}")
+        return
+    finally:
+        cached.unlink(missing_ok=True)
+        loose.unlink(missing_ok=True)
+        if cache_dir.exists() and not any(cache_dir.iterdir()):
+            cache_dir.rmdir()
+    if cached.exists() or loose.exists() or cache_dir.exists():
+        errors.append("workspace runtime cache cleanup left .pyc/__pycache__ artifacts behind")
 
 
 def main() -> int:
@@ -167,6 +190,10 @@ def main() -> int:
     # state match the current unit.
     check_merged_pr_event_lookup(errors)
 
+    # Python imports happen before temporary learner branches are committed. Make
+    # sure those interpreter caches are explicitly removed from the generated state.
+    check_runtime_cache_cleanup(errors)
+
     # Runtime anti-stall/idempotency contracts. These are deliberately text-level so
     # a future refactor cannot silently remove the safeguards without replacing them.
     start = (ROOT / ".github" / "workflows" / "00-start-course.yml").read_text(encoding="utf-8")
@@ -200,7 +227,7 @@ def main() -> int:
     print(
         f"Fixture/runtime contracts passed: {len(calls)} copied fixtures, 12 activity modules, "
         "16 clean assessments with complete/decodable hash coverage, serialized/self-healing runtime, "
-        "race-safe merged-PR validation."
+        "race-safe merged-PR validation, bytecode-clean learner provisioning."
     )
     return 0
 
