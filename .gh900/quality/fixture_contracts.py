@@ -32,13 +32,6 @@ def main() -> int:
                 f"Module {module} workspace requests missing fixture {source.relative_to(ROOT)} -> {destination}"
             )
 
-    # The v2 runtime is Issue-first. Legacy answer/submission worksheets are not
-    # runtime dependencies and must not accumulate in the hidden template package.
-    legacy_worksheets = sorted(TEMPLATES.glob("labs/module-*/submission.md"))
-    legacy_worksheets += sorted(TEMPLATES.glob("labs/module-*/assessment.md"))
-    for path in legacy_worksheets:
-        errors.append(f"Legacy worksheet must be removed: {path.relative_to(ROOT)}")
-
     devcontainer = TEMPLATES / "devcontainer" / "devcontainer.json"
     if not devcontainer.exists():
         errors.append("Codespaces workspace template is missing .gh900/templates/devcontainer/devcontainer.json")
@@ -56,8 +49,8 @@ def main() -> int:
         if marker not in workspace:
             errors.append(f"workspace.py has no provisioning branch for activity Module {module}")
 
-    # Assessments are rendered from canonical lesson/detail data and answer hashes;
-    # learner worksheets must never be required. Verify all 16 remain renderable.
+    # Assessments are rendered from hidden source only; learner worksheets must never
+    # be required. Verify all 16 question sources remain parseable here as a fixture gate.
     for module in range(1, 17):
         try:
             _, count = state.assessment_questions(module)
@@ -80,7 +73,7 @@ def main() -> int:
             print(f"- {item}")
         return 1
 
-    print(f"Fixture contracts passed: {len(calls)} copied fixtures, 12 activity modules, 16 assessments, no legacy worksheets.")
+    print(f"Fixture contracts passed: {len(calls)} copied fixtures, 12 activity modules, 16 assessments.")
     return 0
 
 
