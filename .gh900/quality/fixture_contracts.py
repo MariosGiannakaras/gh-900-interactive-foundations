@@ -13,6 +13,7 @@ TEMPLATES = GH900 / "templates"
 sys.path.insert(0, str(GH900))
 
 import course_unit_state as state  # noqa: E402
+import validate_assessment as assessment_validator  # noqa: E402
 
 EXPECTED_ACTIVITY_MODULES = {1, 2, 4, 5, 6, 8, 9, 10, 11, 14, 15, 16}
 LEGACY_ASSESSMENT_MARKERS = (
@@ -94,6 +95,16 @@ def main() -> int:
         for question, value in module_hashes.items():
             if not re.fullmatch(r"[0-9a-f]{64}", str(value)):
                 errors.append(f"Module {module} {question} has an invalid SHA-256 answer hash")
+                continue
+            matches = [
+                answer
+                for answer in "ABC"
+                if assessment_validator.digest(module, question, answer) == value
+            ]
+            if len(matches) != 1:
+                errors.append(
+                    f"Module {module} {question} hash must resolve to exactly one valid A/B/C answer; got {matches}"
+                )
 
     # Critical final-module fixture alignment: these files are generated together.
     for name in ("app.py", "test_app.py", "requirements.txt"):
@@ -130,7 +141,7 @@ def main() -> int:
 
     print(
         f"Fixture/runtime contracts passed: {len(calls)} copied fixtures, 12 activity modules, "
-        "16 clean assessments with complete hash coverage, serialized/idempotent runtime."
+        "16 clean assessments with complete/decodable hash coverage, serialized/idempotent runtime."
     )
     return 0
 
