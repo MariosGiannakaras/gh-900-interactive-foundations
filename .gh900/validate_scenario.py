@@ -2,7 +2,8 @@
 """Validate structured GitHub administration/project scenarios.
 
 The learner supplies explicit decisions instead of an essay that can pass by keyword
-stuffing. Validators check required fields and a few relationships between decisions.
+stuffing. Validators check required fields, bounded vocabularies, and relationships
+between decisions so syntactically valid but nonsensical answers do not pass.
 """
 from __future__ import annotations
 
@@ -26,7 +27,21 @@ def require(data: dict[str, str], names: tuple[str, ...]) -> list[str]:
 
 def m03(data: dict[str, str]) -> list[str]:
     errors = require(data, ("usage", "cost", "dimension", "decision"))
-    if data.get("usage") == data.get("cost") and data.get("usage"):
+    usage = data.get("usage", "")
+    cost = data.get("cost", "")
+    usage_values = {
+        "runner-minutes", "actions-minutes", "codespaces-hours", "storage",
+        "packages-storage", "copilot-seats", "seat-count",
+    }
+    cost_values = {
+        "billed-amount", "estimated-cost", "spend", "budget-impact",
+        "overage", "included-allowance",
+    }
+    if usage and usage not in usage_values:
+        errors.append("Choose a measurable `usage` value such as runner-minutes, actions-minutes, codespaces-hours, storage, packages-storage, copilot-seats, or seat-count.")
+    if cost and cost not in cost_values:
+        errors.append("Choose a billing `cost` concept such as billed-amount, estimated-cost, spend, budget-impact, overage, or included-allowance.")
+    if usage == cost and usage:
         errors.append("`usage` and `cost` must describe different report concepts.")
     if data.get("dimension") not in {"product", "sku", "repository", "organization", "period", "date", "runner"}:
         errors.append("Choose a useful report `dimension` such as product, SKU, repository, organization, period, date, or runner.")
@@ -37,10 +52,28 @@ def m03(data: dict[str, str]) -> list[str]:
 
 def m07(data: dict[str, str]) -> list[str]:
     errors = require(data, ("trigger", "field", "insight", "reason"))
-    if data.get("field") not in {"status", "priority", "iteration", "assignee", "date"}:
+    trigger = data.get("trigger", "")
+    field = data.get("field", "")
+    valid_triggers = {
+        "status-change", "iteration-change", "assignee-change", "date-change",
+        "item-added", "issue-closed", "pr-merged", "pull-request-merged",
+    }
+    if trigger and trigger not in valid_triggers:
+        errors.append("Choose a concrete automation `trigger`, for example status-change, iteration-change, assignee-change, date-change, item-added, issue-closed, or pull-request-merged.")
+    if field not in {"status", "priority", "iteration", "assignee", "date"}:
         errors.append("Choose a concrete Project `field`, for example status, priority, iteration, assignee, or date.")
     if data.get("insight") not in {"chart", "view", "burnup", "status", "progress", "iteration"}:
         errors.append("Choose a concrete Project `insight`, for example chart, view, burnup, status, progress, or iteration.")
+    required_field = {
+        "status-change": "status",
+        "iteration-change": "iteration",
+        "assignee-change": "assignee",
+        "date-change": "date",
+    }.get(trigger)
+    if required_field and field and field != required_field:
+        errors.append(f"`trigger={trigger}` must be paired with `field={required_field}`.")
+    if trigger in {"issue-closed", "pr-merged", "pull-request-merged"} and field and field not in {"status", "date"}:
+        errors.append(f"`trigger={trigger}` should update or analyze a status/date field, not `{field}`.")
     if len(data.get("reason", "")) < 12:
         errors.append("`reason` must connect the automation trigger to the progress signal.")
     return errors
@@ -48,12 +81,26 @@ def m07(data: dict[str, str]) -> list[str]:
 
 def m12(data: dict[str, str]) -> list[str]:
     errors = require(data, ("scope", "role", "least_privilege", "reason"))
-    if data.get("scope") not in {"repository", "organization", "enterprise"}:
+    scope = data.get("scope", "")
+    role = data.get("role", "")
+    valid_scopes = {"repository", "organization", "enterprise"}
+    repository_roles = {"read", "triage", "write", "maintain", "admin"}
+    organization_roles = {"member", "owner", "billing-manager", "security-manager"}
+    enterprise_roles = {"enterprise-owner", "billing-manager", "security-manager"}
+    valid_roles = repository_roles | organization_roles | enterprise_roles
+
+    if scope not in valid_scopes:
         errors.append("`scope` must be repository, organization, or enterprise.")
+    if role and role not in valid_roles:
+        errors.append("Choose a recognized GitHub `role` or permission: read, triage, write, maintain, admin, member, owner, billing-manager, security-manager, or enterprise-owner.")
+    if scope == "repository" and role and role not in repository_roles:
+        errors.append(f"`role={role}` is not a repository permission level.")
+    if scope == "organization" and role and role not in organization_roles:
+        errors.append(f"`role={role}` is not an organization-level role for this scenario.")
+    if scope == "enterprise" and role and role not in enterprise_roles:
+        errors.append(f"`role={role}` is not an enterprise-level role for this scenario.")
     if data.get("least_privilege") not in {"yes", "enforced", "limited", "minimum"}:
         errors.append("Show least privilege with `least_privilege=yes|enforced|limited|minimum`.")
-    if len(data.get("role", "")) < 3:
-        errors.append("Choose a specific `role` or permission level.")
     if len(data.get("reason", "")) < 12:
         errors.append("`reason` must explain why that scope/role is the minimum appropriate access.")
     return errors
@@ -69,6 +116,8 @@ def m13(data: dict[str, str]) -> list[str]:
         errors.append("Use `provisioning=scim` for automated identity lifecycle provisioning/deprovisioning.")
     if len(data.get("idp", "")) < 2 or len(data.get("team", "")) < 2:
         errors.append("Name the IdP/group context and the GitHub team being synchronized.")
+    if data.get("idp") and data.get("team") and data["idp"] == data["team"]:
+        errors.append("`idp` and `team` represent different identity layers and should not be the same value.")
     return errors
 
 

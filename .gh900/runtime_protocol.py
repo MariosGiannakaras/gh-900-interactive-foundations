@@ -7,10 +7,11 @@ can be exercised exhaustively in Course Quality and used by runtime validators.
 from __future__ import annotations
 
 import re
-from typing import Iterable, Mapping, Any
+from typing import Any, Iterable, Mapping
 
 UNIT_RE = re.compile(r"^m\d{2}-u\d{2}$")
 MARKER_RE = re.compile(r"<!--\s*gh900-unit:(m\d{2}-u\d{2})\s*-->")
+AUTOMATION_LOGIN = "github-actions[bot]"
 
 
 def lesson_marker(unit_id: str) -> str:
@@ -24,11 +25,24 @@ def extract_lesson_marker(body: str) -> str | None:
     return match.group(1) if match else None
 
 
-def response_unit(comments: Iterable[Mapping[str, Any]], comment_id: int) -> str | None:
-    """Return the lesson marker immediately in force when a comment was created.
+def is_authoritative_lesson_comment(comment: Mapping[str, Any]) -> bool:
+    """Return True only for lesson comments posted by the course automation actor."""
+    user = comment.get("user")
+    return isinstance(user, Mapping) and user.get("login") == AUTOMATION_LOGIN
 
-    GitHub comment IDs are monotonic for an Issue. Bot acknowledgement comments do not
-    change the current lesson; only a rendered lesson carrying gh900-unit does.
+
+def authoritative_lesson_marker(comment: Mapping[str, Any]) -> str | None:
+    """Extract a lesson marker only from a trusted automation-authored comment."""
+    if not is_authoritative_lesson_comment(comment):
+        return None
+    return extract_lesson_marker(str(comment.get("body", "")))
+
+
+def response_unit(comments: Iterable[Mapping[str, Any]], comment_id: int) -> str | None:
+    """Return the authoritative lesson marker in force when a comment was created.
+
+    GitHub comment IDs are monotonic for an Issue. Learner-authored marker lookalikes
+    are protocol data, not authority, and must never change the current lesson.
     """
     current: str | None = None
     ordered = sorted(
@@ -36,7 +50,7 @@ def response_unit(comments: Iterable[Mapping[str, Any]], comment_id: int) -> str
         key=lambda c: int(c["id"]),
     )
     for comment in ordered:
-        marker = extract_lesson_marker(str(comment.get("body", "")))
+        marker = authoritative_lesson_marker(comment)
         if marker:
             current = marker
     return current
@@ -49,7 +63,7 @@ def response_matches_unit(comments: Iterable[Mapping[str, Any]], comment_id: int
 def bodies_for_unit(
     comments: Iterable[Mapping[str, Any]], prefix: str, unit_id: str
 ) -> list[str]:
-    """Collect learner response bodies whose preceding rendered lesson is unit_id."""
+    """Collect learner response bodies scoped by authoritative rendered lessons."""
     rows = sorted(
         (c for c in comments if isinstance(c.get("id"), int)),
         key=lambda c: int(c["id"]),
@@ -59,7 +73,7 @@ def bodies_for_unit(
     prefix_lower = prefix.lower()
     for comment in rows:
         body = str(comment.get("body", "")).strip()
-        marker = extract_lesson_marker(body)
+        marker = authoritative_lesson_marker(comment)
         if marker:
             current = marker
             continue

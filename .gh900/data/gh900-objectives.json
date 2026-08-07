@@ -23,10 +23,10 @@
       "name": "Work with GitHub repositories",
       "weight": "10-15%",
       "objectives": [
-        {"id":"repo-01","text":"Describe repository structure and key files including README, LICENSE, CONTRIBUTING, CODEOWNERS, and SECURITY","units":["m10-u03","m11-u02","m11-u04"],"terms":["readme","contributing","codeowners","security.md"]},
+        {"id":"repo-01","text":"Describe repository structure and key files including README, LICENSE, CONTRIBUTING, CODEOWNERS, and SECURITY","units":["m09-u02","m10-u03","m11-u02","m11-u04"],"terms":["readme","license","contributing","codeowners","security.md"]},
         {"id":"repo-02","text":"Identify how to create, organize, and maintain repositories using templates and branches","units":["m02-u05","m10-u02"],"terms":["template","branch","repository"]},
         {"id":"repo-03","text":"Explain how to add and manage files within a repository","units":["m01-u03","m02-u06"],"terms":["file","commit"]},
-        {"id":"repo-04","text":"Describe repository insights, stars, feature previews, repository metrics dashboards, and dependency insights","units":["m02-u02","m11-u03"],"terms":["insight","star","dependency"]},
+        {"id":"repo-04","text":"Describe repository insights, stars, feature previews, repository metrics dashboards, and dependency insights","units":["m02-u02","m11-u03"],"terms":["insight","star","feature preview","metrics","dependency"]},
         {"id":"repo-05","text":"Recognize best practices for repository maintenance and collaboration","units":["m10-u02","m11-u02"],"terms":["maintain","collaboration","review"]}
       ]
     },

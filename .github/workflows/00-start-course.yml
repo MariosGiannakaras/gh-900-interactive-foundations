@@ -33,11 +33,30 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           COURSE_TITLE: "GH-900 Interactive Foundations — Course"
+          COURSE_MARKER: "<!-- gh900-course -->"
         run: |
           set -euo pipefail
-          existing=$(gh issue list --state all --limit 1000 --json number,title \
-            | jq -r --arg title "$COURSE_TITLE" '.[] | select(.title == $title) | .number' \
+
+          # The hidden body marker is the protocol identity. The visible title is
+          # intentionally mutable by the learner and must not be used as authority.
+          issues=$(gh issue list --state all --limit 1000 --json number,title,body)
+          existing=$(jq -r --arg marker "$COURSE_MARKER" \
+            '.[] | select((.body // "") | contains($marker)) | .number' <<<"$issues" \
             | head -n 1)
+
+          # One-time compatibility migration for learner copies created by an older
+          # template version that identified the course Issue only by exact title.
+          if [[ -z "$existing" ]]; then
+            legacy=$(jq -r --arg title "$COURSE_TITLE" \
+              '.[] | select(.title == $title) | .number' <<<"$issues" \
+              | head -n 1)
+            if [[ -n "$legacy" ]]; then
+              legacy_body=$(gh issue view "$legacy" --json body --jq .body)
+              gh issue edit "$legacy" --body "$(printf '%s\n%s' "$COURSE_MARKER" "$legacy_body")" >/dev/null
+              existing="$legacy"
+            fi
+          fi
+
           if [[ -n "$existing" ]]; then
             echo "number=$existing" >> "$GITHUB_OUTPUT"
             echo "existing=true" >> "$GITHUB_OUTPUT"
@@ -45,13 +64,14 @@ jobs:
           fi
 
           cat > /tmp/body.md <<'EOF'
+          <!-- gh900-course -->
           <!-- gh900-state:m01-u01 -->
           # GH-900 Interactive Foundations
 
           This Issue is the course interface. Lessons, assessments, feedback, and progress appear here.
 
           - Follow only the latest course instruction.
-          - Do not edit the hidden `gh900-state` marker.
+          - Do not edit the hidden `gh900-course` or `gh900-state` markers.
           - Exercise files appear only when the current unit needs them.
           - Temporary exercise branches/files are cleaned after validation.
           - `/help` shows the current unit again.
@@ -105,10 +125,12 @@ jobs:
           ISSUE_NUMBER: ${{ steps.course.outputs.number }}
         run: |
           set -euo pipefail
-          # A previous attempt may have created the Issue but failed before posting the
-          # first lesson. Detect any rendered course unit by its stable progress table.
-          if gh api --paginate "repos/${GITHUB_REPOSITORY}/issues/${ISSUE_NUMBER}/comments?per_page=100" \
-            --jq '.[].body' | grep -Fq '| Course position | Progress |'; then
+          # A learner-authored lookalike must not suppress bootstrap recovery. Only an
+          # automation-authored rendered course unit counts as authoritative evidence.
+          if gh api --paginate --slurp \
+            "repos/${GITHUB_REPOSITORY}/issues/${ISSUE_NUMBER}/comments?per_page=100" \
+            | jq -e 'add | any(.[]; (.user.login == "github-actions[bot]") and (((.body // "") | contains("| Course position | Progress |"))))' \
+              >/dev/null; then
             echo "Course unit already present; startup is complete."
             exit 0
           fi

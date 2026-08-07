@@ -66,12 +66,18 @@ def check_workflows(errors: list[str]) -> None:
         error(errors, "Course Quality must be source-template-only")
     if 'branches:\n      - "lab/**"' not in engine:
         error(errors, "Course engine must limit push progression to temporary lab branches")
+    if 'COURSE_MARKER: "<!-- gh900-course -->"' not in start:
+        error(errors, "Step 0 must create/find the course Issue using the hidden gh900-course marker")
+    if 'COURSE_MARKER: "<!-- gh900-course -->"' not in engine:
+        error(errors, "Course engine must identify the course Issue using the hidden gh900-course marker")
+    if "github.event.issue.title == 'GH-900 Interactive Foundations — Course'" in engine:
+        error(errors, "Course engine must not depend on the learner-visible Issue title")
     for required in (
-        "github.event.issue.title == 'GH-900 Interactive Foundations — Course'",
         "startsWith(github.event.pull_request.head.ref, 'lab/')",
         "startsWith(github.event.pull_request.base.ref, 'sandbox/')",
         "reconcile_current_lesson",
         "gh900-unit:${state}",
+        '.user.login == "github-actions[bot]"',
         'if [[ "$command" == "/help" ]]',
         "validate_checkpoint.py",
     ):
