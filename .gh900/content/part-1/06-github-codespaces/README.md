@@ -212,23 +212,21 @@ Use **Codespaces** when you need a real development environment with compute, te
 
 Official unit: <https://learn.microsoft.com/en-us/training/modules/code-with-github-codespaces/5-exercise-code-with-codespaces>
 
-The official exercise uses a GitHub Skills repository. Our course keeps the exercise inside this repository.
+The interactive exercise generates only the temporary configuration needed for this unit on `lab/m06-u05`.
 
-You will:
+The learner:
 
-1. create/use `lab/module-06-codespaces`;
-2. create a Codespace for the branch;
-3. inspect the terminal and verify repository/branch state;
-4. inspect `.devcontainer/devcontainer.json`;
-5. add a repository-level dev-container customization required by the exercise;
-6. rebuild the Codespace or document the rebuild step if the environment already matches;
-7. run the provided sample command/test in the Codespace terminal;
-8. edit and commit the lab file;
-9. push changes to GitHub;
-10. compare what would and would not be possible in GitHub.dev;
-11. stop the Codespace after pushing work and distinguish this from deleting it.
+1. creates/opens a Codespace for the temporary learner branch when the account permits it;
+2. verifies repository and branch state from the Codespaces terminal;
+3. inspects and customizes `.devcontainer/devcontainer.json` with a meaningful repository-level setting;
+4. rebuilds the Codespace, or explicitly identifies the rebuild action when the environment already matches the desired configuration;
+5. runs a sample terminal command/test and commits the customization;
+6. compares the capability with **github.dev**, identifying what requires Codespaces compute/terminal access;
+7. distinguishes **stopping** a Codespace from **deleting** it;
+8. posts a unit-scoped `/reflection ...` confirming the observed or guided Codespaces/github.dev/stop-vs-delete behavior;
+9. pushes the temporary learner branch.
 
-The course can validate repository configuration/commits but cannot directly inspect a learner's personal Codespaces account lifecycle. The required issue step therefore combines durable validation with explicit observed-action confirmation.
+The course validates durable repository configuration and the unit-scoped reflection. GitHub Actions cannot honestly inspect a learner's private Codespaces lifecycle, so account/quota limitations do not require fabricated telemetry. The official Microsoft Learn exercise link remains visible in this unit.
 
 ---
 
