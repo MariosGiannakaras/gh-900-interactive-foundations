@@ -169,22 +169,19 @@ Templates reduce missing information upfront; saved replies reduce repetitive ma
 
 Official unit: <https://learn.microsoft.com/en-us/training/modules/search-organize-repository-history-github/3-connect-dots>
 
-The integrated lab creates a deliberately connected repository history.
+The interactive exercise creates a deliberately connected temporary repository history. The course prepares a regression Issue, `sandbox/m15-u03`, and a `fixture/m15-u03` regression branch. The learner then:
 
-The learner will:
+1. opens the temporary regression Issue;
+2. creates a Pull Request from `fixture/m15-u03` into `sandbox/m15-u03` and links the Issue;
+3. inspects the PR's commits and changed files and merges it;
+4. uses global/repository search to find the merged PR, regression commit, and Issue;
+5. opens **Blame** for `exercise/history-fixture.txt` on the sandbox branch;
+6. applies the prepared label and milestone and assigns the Issue to themselves;
+7. adds an `@mention`, PR reference, and regression commit SHA to the Issue;
+8. submits the connected result directly in the course Issue with `/investigation issue=#N pr=#N commit=<sha> explanation=<what-the-linked-history-tells-you>`;
+9. runs `/check` for the final validation.
 
-1. open the Module 15 Issue describing a fictitious regression;
-2. run supplied global/context search queries;
-3. find a related closed PR and commit;
-4. open **Blame** on the target fixture file;
-5. identify the commit that introduced the relevant line;
-6. follow references back to the related PR/Issue;
-7. add a label and milestone to the current Issue where permitted;
-8. assign the Issue to themselves in their fork;
-9. add an `@mention`/cross-reference comment connecting the related historical items;
-10. complete `labs/module-15/history-investigation.md` with the Issue number, PR number, commit SHA, label, milestone, and explanation of the discovered context.
-
-The engine validates durable links/metadata where GitHub exposes them and validates the investigation artifact for the rest.
+The validator checks the real Issue/PR/commit/Blame-adjacent metadata and the unit-scoped investigation response. No `history-investigation.md` worksheet is created.
 
 ---
 

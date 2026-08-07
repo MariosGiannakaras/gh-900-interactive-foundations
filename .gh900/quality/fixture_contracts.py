@@ -126,7 +126,10 @@ def main() -> int:
     for marker in (
         "COMMENT_ID:",
         "comment_matches_current_unit()",
-        "Ignoring a stale/ambiguous course command",
+        "Ignoring a stale/ambiguous course response",
+        "reconcile_current_lesson()",
+        "gh900-unit:${state}",
+        "validate_checkpoint.py",
         "timeout --signal=TERM --kill-after=5s 90s python3 .gh900/validate_activity.py",
         "cleanup_stale_course_branches()",
     ):
@@ -141,7 +144,7 @@ def main() -> int:
 
     print(
         f"Fixture/runtime contracts passed: {len(calls)} copied fixtures, 12 activity modules, "
-        "16 clean assessments with complete/decodable hash coverage, serialized/idempotent runtime."
+        "16 clean assessments with complete/decodable hash coverage, serialized/self-healing runtime."
     )
     return 0
 

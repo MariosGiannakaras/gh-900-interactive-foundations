@@ -26,11 +26,14 @@ jobs:
       (github.event_name != 'push' || github.event.deleted != true) &&
       (github.event_name != 'pull_request' ||
        (github.event.pull_request.head.repo.full_name == github.repository &&
+        startsWith(github.event.pull_request.head.ref, 'lab/') &&
+        startsWith(github.event.pull_request.base.ref, 'sandbox/') &&
         (github.event.pull_request.author_association == 'OWNER' ||
          github.event.pull_request.author_association == 'MEMBER' ||
          github.event.pull_request.author_association == 'COLLABORATOR'))) &&
       (github.event_name != 'issue_comment' ||
-       (github.event.comment.user.type != 'Bot' &&
+       (github.event.issue.title == 'GH-900 Interactive Foundations — Course' &&
+        github.event.comment.user.type != 'Bot' &&
         (github.event.comment.author_association == 'OWNER' ||
          github.event.comment.author_association == 'MEMBER' ||
          github.event.comment.author_association == 'COLLABORATOR')))
@@ -78,10 +81,39 @@ jobs:
           meta=$(python3 .gh900/course_unit_state.py --unit "$state")
           mode=$(jq -r .mode <<<"$meta")
           module=$(jq -r .module <<<"$meta")
+          unit_number=$(jq -r .number <<<"$meta")
+          completed_title=$(jq -r .title <<<"$meta")
           branch=$(jq -r '.branch // ""' <<<"$meta")
           sandbox=$(jq -r '.sandbox // ""' <<<"$meta")
           requires_pr=$(jq -r '.requires_pr // false' <<<"$meta")
           advance=false
+
+          load_course_comments() {
+            set +e
+            timeout --signal=TERM --kill-after=5s 60s gh api --paginate --slurp \
+              "repos/${GITHUB_REPOSITORY}/issues/${issue_number}/comments?per_page=100" > /tmp/course-comments.json
+            local result=$?
+            set -e
+            return "$result"
+          }
+
+          render_current() {
+            python3 .gh900/course_unit_state.py --unit "$state" --render > /tmp/current.md
+            gh issue comment "$issue_number" --body-file /tmp/current.md
+          }
+
+          reconcile_current_lesson() {
+            load_course_comments || {
+              echo "Could not reconcile the visible lesson; continuing without mutating state."
+              return 0
+            }
+            if ! jq -e --arg marker "<!-- gh900-unit:${state} -->" \
+              'add | any(.[]; ((.body // "") | contains($marker)))' /tmp/course-comments.json >/dev/null; then
+              echo "Current state has no rendered lesson; restoring it idempotently."
+              render_current
+              load_course_comments || true
+            fi
+          }
 
           post_failure() {
             local title="$1"
@@ -111,7 +143,7 @@ jobs:
 
           checkout_lab() {
             if ! timeout --signal=TERM --kill-after=5s 60s git ls-remote --exit-code origin "refs/heads/$branch" >/dev/null 2>&1; then
-              gh issue comment "$issue_number" --body "The temporary learner branch \`$branch\` is missing. The current exercise must be recreated before validation can continue."
+              gh issue comment "$issue_number" --body "The temporary learner branch \`$branch\` is missing. Comment \`/help\` to restore the current lesson, then retry the exercise setup if needed."
               return 1
             fi
             timeout --signal=TERM --kill-after=5s 60s git fetch origin "refs/heads/$branch:refs/remotes/origin/$branch"
@@ -135,45 +167,37 @@ jobs:
             fi
           }
 
-          # A comment command belongs to the lesson that was immediately visible when
-          # the learner posted it. This prevents queued duplicate commands (for example
-          # two quick /next comments) from advancing a second unit after state changes.
+          # A command/evidence response belongs to the lesson marker that immediately
+          # preceded it. This makes queued duplicate comments and old responses harmless.
           comment_matches_current_unit() {
             [[ "$EVENT_NAME" == "issue_comment" ]] || return 0
             [[ -n "${COMMENT_ID:-}" ]] || return 1
-            set +e
-            timeout --signal=TERM --kill-after=5s 60s gh api --paginate --slurp \
-              "repos/${GITHUB_REPOSITORY}/issues/${issue_number}/comments?per_page=100" > /tmp/course-comments.json
-            api_result=$?
-            set -e
-            if (( api_result != 0 )); then
-              echo "Could not resolve the comment's lesson context; leaving state unchanged for a safe retry."
-              return 1
-            fi
+            [[ -s /tmp/course-comments.json ]] || load_course_comments || return 1
             preceding=$(jq -r --argjson id "$COMMENT_ID" '
               add
-              | map(select((.id < $id) and ((.body // "") | contains("| Course position | Progress |"))))
+              | map(select((.id < $id) and ((.body // "") | test("<!--\\s*gh900-unit:m[0-9]{2}-u[0-9]{2}\\s*-->"))))
               | last
               | .body // ""
             ' /tmp/course-comments.json)
-            [[ -n "$preceding" ]] || return 1
-            state_module=$((10#${state:1:2}))
-            state_unit=$((10#${state:5:2}))
-            expected="Module **${state_module} / 16** · Unit **${state_unit} /"
-            [[ "$preceding" == *"$expected"* ]]
+            marker=$(grep -oE 'gh900-unit:m[0-9]{2}-u[0-9]{2}' <<<"$preceding" | tail -n1 | cut -d: -f2 || true)
+            [[ "$marker" == "$state" ]]
           }
+
+          reconcile_current_lesson
 
           if [[ "$EVENT_NAME" == "issue_comment" ]]; then
             [[ "${COMMENT_ISSUE:-}" == "$issue_number" ]] || exit 0
-            if ! comment_matches_current_unit; then
-              echo "Ignoring a stale/ambiguous course command from an earlier rendered unit."
-              exit 0
-            fi
             command=$(printf '%s' "${COMMENT_BODY:-}" | tr -d '\r' | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
 
+            # /help is recovery, not progression. It always renders the authoritative
+            # current state even if the user's visible transcript is stale.
             if [[ "$command" == "/help" ]]; then
-              python3 .gh900/course_unit_state.py --unit "$state" --render > /tmp/current.md
-              gh issue comment "$issue_number" --body-file /tmp/current.md
+              render_current
+              exit 0
+            fi
+
+            if ! comment_matches_current_unit; then
+              echo "Ignoring a stale/ambiguous course response from an earlier rendered unit."
               exit 0
             fi
 
@@ -185,6 +209,26 @@ jobs:
                   gh issue comment "$issue_number" --body $'This is a reading/understanding unit. Comment exactly `/next` when ready, or `/help` to show it again.'
                   exit 0
                 fi
+                ;;
+              checkpoint)
+                if [[ "$command" != /checkpoint\ * ]]; then
+                  gh issue comment "$issue_number" --body $'Complete the account-aware setup checkpoint with `/checkpoint ...` using the fields shown in the current lesson. `/help` restores the instructions.'
+                  exit 0
+                fi
+                response="${command#/checkpoint }"
+                set +e
+                output=$(timeout --signal=TERM --kill-after=5s 30s python3 .gh900/validate_checkpoint.py --unit "$state" --response "$response" 2>&1)
+                result=$?
+                set -e
+                if (( result == 124 || result == 137 )); then
+                  post_failure "Setup checkpoint timed out" "Checkpoint validation exceeded 30 seconds and was stopped safely. Retry the same response."
+                  exit 0
+                fi
+                if (( result != 0 )); then
+                  post_failure "Setup checkpoint needs another attempt" "$output"
+                  exit 0
+                fi
+                advance=true
                 ;;
               assessment)
                 if [[ "$command" != /answer\ * ]]; then
@@ -208,7 +252,7 @@ jobs:
                 ;;
               scenario)
                 if [[ "$command" != /scenario\ * ]]; then
-                  gh issue comment "$issue_number" --body $'Reply with `/scenario` followed by your reasoned response. Use `/help` to show the scenario again.'
+                  gh issue comment "$issue_number" --body $'Reply with `/scenario` followed by the structured fields shown in the current lesson. Use `/help` to show the scenario again.'
                   exit 0
                 fi
                 response="${command#/scenario }"
@@ -221,7 +265,7 @@ jobs:
                   exit 0
                 fi
                 if (( result != 0 )); then
-                  post_failure "Scenario response needs more detail" "$output"
+                  post_failure "Scenario response needs correction" "$output"
                   exit 0
                 fi
                 advance=true
@@ -229,14 +273,14 @@ jobs:
               activity)
                 if [[ "$command" == /reflection\ * ]]; then
                   if (( ${#command} < 60 )); then
-                    gh issue comment "$issue_number" --body $'Reflection recorded, but it is very short. Add the observations/reasoning requested by the current checklist before final validation.'
+                    gh issue comment "$issue_number" --body $'Reflection recorded for this unit, but it is very short. Add the observations/reasoning requested by the current checklist before final validation.'
                   else
-                    gh issue comment "$issue_number" --body $'Reflection recorded. Complete the remaining hands-on steps; the next relevant push/PR or `/check` will validate it together with repository state.'
+                    gh issue comment "$issue_number" --body $'Reflection recorded for this unit. Complete the remaining hands-on steps; the next relevant push/PR or `/check` will validate it together with repository state.'
                   fi
                   exit 0
                 fi
                 if [[ "$module" == "15" && "$command" == /investigation\ * ]]; then
-                  gh issue comment "$issue_number" --body $'Investigation response recorded. Apply the requested metadata/cross-links to the temporary regression Issue, then comment `/check`.'
+                  gh issue comment "$issue_number" --body $'Investigation response recorded for this unit. Apply the requested metadata/cross-links to the temporary regression Issue, then comment `/check`.'
                   exit 0
                 fi
                 if [[ "$command" != "/check" ]]; then
@@ -291,8 +335,7 @@ jobs:
             fi
 
           elif [[ "$EVENT_NAME" == "workflow_dispatch" ]]; then
-            python3 .gh900/course_unit_state.py --unit "$state" --render > /tmp/current.md
-            gh issue comment "$issue_number" --body-file /tmp/current.md
+            render_current
             exit 0
           fi
 
@@ -391,9 +434,6 @@ jobs:
                 existing_issue="${issue_url##*/}"
               fi
 
-              # The fixture branch is generated automatically, but the learner opens
-              # and merges its PR. This keeps the course compatible with the secure
-              # repository setting that prevents GITHUB_TOKEN from creating PRs.
               fixture_branch="fixture/$unit"
               git checkout -B "$fixture_branch" "$next_sandbox"
               printf '%s\n' 'Regression marker: cache keys are no longer normalized before lookup.' >> exercise/history-fixture.txt
@@ -422,9 +462,7 @@ jobs:
           set -e
 
           if (( next_result == 3 )); then
-            # Close the course before deleting the final lab. If the close fails, the
-            # old state and activity remain intact for a safe retry.
-            gh issue comment "$issue_number" --body $'## Course complete\n\nYou completed GitHub Foundations Part 1 and Part 2: all 16 modules and all 106 official unit checkpoints represented by this course.'
+            gh issue comment "$issue_number" --body $'> [!TIP]\n> **Checkpoint passed:** the final GH-900 unit.\n\n## Course complete\n\nYou completed GitHub Foundations Part 1 and Part 2: all 16 modules and all 106 official unit checkpoints represented by this course.'
             gh issue close "$issue_number" --reason completed
             cleanup_activity
             cleanup_stale_course_branches ""
@@ -435,14 +473,18 @@ jobs:
 
           next_state=$(jq -r .id <<<"$next_meta")
 
-          # Provision first, then persist the next state, and only then delete the old
-          # exercise. Any failure before the state edit leaves the validated current
-          # activity recoverable; after the edit, cleanup is safe and best-effort.
+          # Provision first, persist the next state, then clean the previous activity.
+          # If only the final lesson post fails, the next engine event reconciles and
+          # restores the lesson matching the persisted state.
           prepare_activity "$next_state"
           new_body=$(printf '%s' "$body" | sed -E "s/<!-- gh900-state:[^>]+ -->/<!-- gh900-state:${next_state} -->/")
           gh issue edit "$issue_number" --body "$new_body"
           cleanup_activity
           cleanup_stale_course_branches "$next_state"
 
-          python3 .gh900/course_unit_state.py --unit "$next_state" --render > /tmp/next.md
+          python3 .gh900/course_unit_state.py --unit "$next_state" --render > /tmp/rendered-next.md
+          {
+            printf '> [!TIP]\n> **Checkpoint passed:** Module %s · Unit %s — %s\n\n' "$module" "$unit_number" "$completed_title"
+            cat /tmp/rendered-next.md
+          } > /tmp/next.md
           gh issue comment "$issue_number" --body-file /tmp/next.md

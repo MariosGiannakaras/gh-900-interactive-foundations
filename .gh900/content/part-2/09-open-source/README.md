@@ -16,7 +16,7 @@ After this module you should be able to:
 - link a PR to an Issue and work with status checks/reviews;
 - use draft PRs appropriately;
 - respond constructively to maintainer feedback;
-- recognize community participation, GitHub Sponsors, reuse, Actions, Marketplace, and the responsibilities of becoming a maintainer.
+- recognize community participation, GitHub Sponsors, reuse, Actions, Marketplace, following users/organizations, and the responsibilities of becoming a maintainer.
 
 ---
 
@@ -187,25 +187,19 @@ Requested changes are normal collaboration, not a failure. Address feedback or d
 
 Official unit: <https://learn.microsoft.com/en-us/training/modules/contribute-open-source/4-exercise-create-pr>
 
-The integrated exercise recreates the open-source contribution model without requiring learners to modify an unrelated third-party project.
+The interactive exercise reproduces the open-source contribution mechanics inside the safe learner repository instead of modifying an unrelated external project.
 
-The learner will:
+For `m09-u04`, the engine prepares a temporary Issue plus `sandbox/m09-u04` and `lab/m09-u04`. The learner:
 
-1. create/fork a personal copy of the course if they are not already working in one;
-2. find the Issue labeled for Module 9;
-3. verify nobody else is assigned in the learner's copy;
-4. comment their intent;
-5. create `lab/module-09-open-source`;
-6. make the requested documentation change;
-7. commit/push;
-8. open a PR with the provided template;
-9. link the Issue;
-10. observe automated status checks;
-11. respond to an automated review comment;
-12. update the branch;
-13. merge when the course permits.
+1. opens the temporary Issue, checks assignment state, and comments their intent;
+2. edits `exercise/open-source-pr.md`;
+3. commits and pushes the learner branch;
+4. opens a Pull Request from `lab/m09-u04` into `sandbox/m09-u04` and links the Issue;
+5. inspects the automated status check and training review comment;
+6. responds to the review, pushes an additional improvement, and inspects the updated diff/check;
+7. merges the PR when ready.
 
-This preserves the same contribution mechanics—Issue communication, fork/branch/PR/status-check/review lifecycle—inside a safe training repository.
+This preserves Issue communication, branch/PR/status-check/review/update/merge mechanics while keeping the exercise isolated from `main`. The engine validates the real GitHub state and cleans the temporary branches/Issue/label after completion.
 
 ---
 
@@ -215,7 +209,7 @@ Official unit: <https://learn.microsoft.com/en-us/training/modules/contribute-op
 
 ### Community participation
 
-Frequent contributors can be discovered through Issue/PR discussions, repository insights/contributor information, profiles, organizations, and linked community channels.
+Frequent contributors can be discovered through Issue/PR discussions, repository insights/contributor information, profiles, organizations, and linked community channels. Following users or organizations can also help you stay informed about activity relevant to projects and communities you care about.
 
 Open-source communities can also exist on:
 
@@ -268,7 +262,7 @@ Assessment coverage includes:
 - fork/clone/branch/PR flow;
 - status checks;
 - draft PRs and review feedback;
-- Sponsors and Marketplace;
+- Sponsors, following, and Marketplace;
 - maintainer responsibilities.
 
 ---

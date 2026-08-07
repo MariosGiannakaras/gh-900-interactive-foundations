@@ -2,8 +2,9 @@
 """Hardened entrypoint for GH-900 hands-on validation.
 
 The large module-specific implementation lives in validate_activity_core.py. This
-entrypoint adds cross-cutting checks for complete Issue-comment pagination and direct
-behavior validation of generated Python exercises while preserving the core logic.
+entrypoint adds cross-cutting checks for complete Issue-comment pagination, unit-scoped
+learner evidence, and direct behavior validation of generated Python exercises while
+preserving the core module logic.
 """
 from __future__ import annotations
 
@@ -15,13 +16,15 @@ import subprocess
 import sys
 from pathlib import Path
 
+import runtime_protocol
 import validate_activity_core as core
 
 ROOT = Path(__file__).resolve().parents[1]
+CURRENT_UNIT = ""
 
 
-def course_comment_bodies(prefix: str) -> list[str]:
-    """Read complete course comments across all REST pages, preserving newlines."""
+def _course_comments() -> list[dict[str, object]]:
+    """Read the complete course transcript across all REST pages."""
     if not os.environ.get("GITHUB_ACTIONS"):
         return []
     repo = os.environ.get("GITHUB_REPOSITORY", "")
@@ -34,7 +37,7 @@ def course_comment_bodies(prefix: str) -> list[str]:
     if not hit:
         return []
 
-    bodies: list[str] = []
+    comments: list[dict[str, object]] = []
     page = 1
     while True:
         result = subprocess.run(
@@ -45,31 +48,42 @@ def course_comment_bodies(prefix: str) -> list[str]:
             cwd=ROOT,
             text=True,
             capture_output=True,
+            timeout=60,
         )
         if result.returncode != 0:
-            return bodies
+            return comments
         try:
-            comments = json.loads(result.stdout)
+            page_rows = json.loads(result.stdout)
         except json.JSONDecodeError:
-            return bodies
-        if not isinstance(comments, list) or not comments:
+            return comments
+        if not isinstance(page_rows, list) or not page_rows:
             break
-        for comment in comments:
-            body = str(comment.get("body", "")).strip()
-            if body.lower().startswith(prefix.lower()):
-                bodies.append(body)
-        if len(comments) < 100:
+        comments.extend(row for row in page_rows if isinstance(row, dict))
+        if len(page_rows) < 100:
             break
         page += 1
-    return bodies
+    return comments
+
+
+def course_comment_bodies(prefix: str) -> list[str]:
+    """Return only responses submitted while CURRENT_UNIT was the visible lesson."""
+    if not CURRENT_UNIT:
+        return []
+    return runtime_protocol.bodies_for_unit(_course_comments(), prefix, CURRENT_UNIT)
 
 
 def _run_python(code: str, cwd: Path) -> tuple[bool, str]:
     if not cwd.exists():
         return False, f"Exercise directory is missing: {cwd.relative_to(ROOT)}"
     try:
-        result = subprocess.run([sys.executable, "-c", code], cwd=cwd, text=True, capture_output=True)
-    except OSError as exc:
+        result = subprocess.run(
+            [sys.executable, "-c", code],
+            cwd=cwd,
+            text=True,
+            capture_output=True,
+            timeout=30,
+        )
+    except (OSError, subprocess.TimeoutExpired) as exc:
         return False, str(exc)
     return result.returncode == 0, (result.stdout + "\n" + result.stderr).strip()
 
@@ -140,9 +154,11 @@ core.validate_module16 = validate_module16
 
 
 def main() -> int:
+    global CURRENT_UNIT
     parser = argparse.ArgumentParser()
     parser.add_argument("--unit", required=True)
     args = parser.parse_args()
+    CURRENT_UNIT = args.unit
     errors = core.validate(args.unit)
     if errors:
         print("\n".join(f"- {item}" for item in errors))

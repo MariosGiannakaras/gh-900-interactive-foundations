@@ -198,21 +198,19 @@ Event-driven scans provide immediate feedback around changes. Scheduled scans pr
 
 Official unit: <https://learn.microsoft.com/en-us/training/modules/configure-code-scanning/5-exercise>
 
-The original Microsoft exercise expects a GitHub environment where code scanning can be configured. Our public course repository provides an equivalent practical layer that does not require a paid private-repository GHAS seat.
+The original Microsoft exercise expects a GitHub environment where code scanning can be configured. The interactive adaptation keeps a real advanced-style configuration and SARIF exercise without requiring a paid private-repository security entitlement.
 
-You will:
+On `lab/m04-u05` the learner:
 
-1. work on `lab/module-04-code-scanning`;
-2. inspect the repository Security tab;
-3. create a CodeQL workflow under `.github/workflows/module-04-codeql.yml` using advanced-style configuration;
-4. configure `push`, `pull_request`, and scheduled triggers;
-5. select an appropriate language for the provided sample;
-6. inspect the resulting Actions run;
-7. review the difference between GitHub Actions CodeQL and an external SARIF-producing scanner;
-8. inspect a sample SARIF document supplied by the course;
-9. answer scenario questions about default vs advanced vs external setup.
+1. inspects **Security → Code scanning** to identify the code-scanning surface;
+2. completes `.github/workflows/module-04-codeql.yml` with push, pull-request, and scheduled trigger concepts plus CodeQL initialization/analysis;
+3. completes `exercise/code-scanning-simulation.yml` with SARIF 2.1.0 and upload constraints from the lesson;
+4. inspects `exercise/sample.sarif.json` and connects an external SARIF-producing scanner to the upload model;
+5. inspects the temporary Actions run if repository policy permits it, or explains the expected run/configuration when it does not;
+6. posts a unit-scoped `/reflection ...` comparing default setup, advanced setup, and an external SARIF scanner;
+7. commits and pushes the temporary configuration.
 
-Where GitHub permits the workflow to run in the learner's copy/fork, the course engine checks for the workflow file and completed Actions state. If a fork policy prevents a security workflow from running automatically, the durable configuration and scenario assessment remain the required completion evidence.
+The validator checks the generated workflow/simulation/SARIF state and the reflection for this exact unit. The temporary learner/sandbox branches are cleaned after validation.
 
 ---
 

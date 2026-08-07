@@ -1,0 +1,93 @@
+{
+  "schema_version": 1,
+  "source": "https://learn.microsoft.com/en-us/credentials/certifications/resources/study-guides/gh-900",
+  "skills_at_a_glance": "January 2026",
+  "source_last_updated": "2026-02-19",
+  "domains": [
+    {
+      "id": "git-basics",
+      "name": "Understand Git and GitHub basics",
+      "weight": "25-30%",
+      "objectives": [
+        {"id":"git-01","text":"Describe the purpose and benefits of version control","units":["m01-u02"],"terms":["version control"]},
+        {"id":"git-02","text":"Explain the difference between Git and GitHub","units":["m01-u02","m02-u02"],"terms":["git","github"]},
+        {"id":"git-03","text":"Identify key Git concepts such as repositories, commits, and branches","units":["m01-u02","m01-u03","m01-u04"],"terms":["repository","commit","branch"]},
+        {"id":"git-04","text":"Describe GitHub accounts, organizations, and enterprise options","units":["m03-u02","m12-u02"],"terms":["organization","enterprise","account"]},
+        {"id":"git-05","text":"Explain the GitHub Flow for collaboration","units":["m02-u03","m02-u06"],"terms":["github flow","pull request"]},
+        {"id":"git-06","text":"Identify uses of Markdown for clear communication in issues and pull requests","units":["m08-u02","m08-u03"],"terms":["markdown","issue","pull request"]},
+        {"id":"git-07","text":"Recognize when to use GitHub Desktop and GitHub Mobile","units":["m03-u03"],"terms":["github desktop","github mobile"]}
+      ]
+    },
+    {
+      "id": "repositories",
+      "name": "Work with GitHub repositories",
+      "weight": "10-15%",
+      "objectives": [
+        {"id":"repo-01","text":"Describe repository structure and key files including README, LICENSE, CONTRIBUTING, CODEOWNERS, and SECURITY","units":["m10-u03","m11-u02","m11-u04"],"terms":["readme","contributing","codeowners","security.md"]},
+        {"id":"repo-02","text":"Identify how to create, organize, and maintain repositories using templates and branches","units":["m02-u05","m10-u02"],"terms":["template","branch","repository"]},
+        {"id":"repo-03","text":"Explain how to add and manage files within a repository","units":["m01-u03","m02-u06"],"terms":["file","commit"]},
+        {"id":"repo-04","text":"Describe repository insights, stars, feature previews, repository metrics dashboards, and dependency insights","units":["m02-u02","m11-u03"],"terms":["insight","star","dependency"]},
+        {"id":"repo-05","text":"Recognize best practices for repository maintenance and collaboration","units":["m10-u02","m11-u02"],"terms":["maintain","collaboration","review"]}
+      ]
+    },
+    {
+      "id": "collaboration",
+      "name": "Collaborate using GitHub",
+      "weight": "10-15%",
+      "objectives": [
+        {"id":"collab-01","text":"Describe how to use issues, pull requests, and discussions for collaboration","units":["m02-u04","m02-u06","m14-u02"],"terms":["issue","pull request","discussion"]},
+        {"id":"collab-02","text":"Explain how to link pull requests to issues and manage templates, filters, and assignments","units":["m02-u06","m09-u04","m10-u03","m15-u02"],"terms":["link","template","filter","assign"]},
+        {"id":"collab-03","text":"Identify the purpose of notifications and how to configure them for workflow management","units":["m02-u05"],"terms":["notification"]},
+        {"id":"collab-04","text":"Describe how to use Gists, Wikis, and GitHub Pages to document and share information","units":["m02-u02","m02-u05"],"terms":["gist","wiki","pages"]}
+      ]
+    },
+    {
+      "id": "modern-development",
+      "name": "Apply modern development practices",
+      "weight": "10-15%",
+      "objectives": [
+        {"id":"modern-01","text":"Describe the purpose and capabilities of GitHub Actions","units":["m04-u04","m11-u03"],"terms":["actions","workflow"]},
+        {"id":"modern-02","text":"Identify how GitHub Copilot assists with AI-powered code suggestions including Copilot agents, Agent Mode, and multi-model support","units":["m05-u02","m05-u03","m05-u04"],"terms":["copilot","agent","model"]},
+        {"id":"modern-03","text":"Explain differences between GitHub Copilot plans for individuals, business, and enterprise use","units":["m05-u02","m05-u04"],"terms":["business","enterprise","copilot"]},
+        {"id":"modern-04","text":"Describe GitHub Codespaces and how to set up, customize, and use dev containers","units":["m06-u02","m06-u03","m06-u05"],"terms":["codespace","dev container"]},
+        {"id":"modern-05","text":"Explain when to use github.dev and how it differs from Codespaces","units":["m06-u04","m06-u05"],"terms":["github.dev","codespaces"]}
+      ]
+    },
+    {
+      "id": "projects",
+      "name": "Manage projects with GitHub",
+      "weight": "5-10%",
+      "objectives": [
+        {"id":"project-01","text":"Describe GitHub Projects and layout options","units":["m07-u02","m07-u03"],"terms":["project","table","board"]},
+        {"id":"project-02","text":"Explain how to configure projects, labels, milestones, and workflows","units":["m07-u04","m07-u05","m15-u02"],"terms":["label","milestone","workflow"]},
+        {"id":"project-03","text":"Identify how to use saved replies and assignees to streamline communication","units":["m07-u04","m15-u02"],"terms":["saved reply","assignee"]},
+        {"id":"project-04","text":"Describe how project insights can track progress and productivity","units":["m07-u06"],"terms":["insight","progress"]}
+      ]
+    },
+    {
+      "id": "security-admin",
+      "name": "Understand privacy, security, and administration",
+      "weight": "10-15%",
+      "objectives": [
+        {"id":"security-01","text":"Describe how to secure accounts with two-factor authentication and passkeys","units":["m12-u03","m13-u03"],"terms":["2fa","passkey"]},
+        {"id":"security-02","text":"Identify access permissions and roles for repositories and organizations","units":["m12-u04","m12-u05"],"terms":["permission","role"]},
+        {"id":"security-03","text":"Explain Enterprise Managed Users and organization-wide Copilot policy management","units":["m12-u05","m13-u02","m05-u04"],"terms":["enterprise managed users","copilot","policy"]},
+        {"id":"security-04","text":"Describe repository privacy options, visibility settings, and branch protection rules","units":["m02-u02","m11-u02"],"terms":["visibility","branch protection"]},
+        {"id":"security-05","text":"Recognize how to manage organization settings, teams, and roles","units":["m12-u02","m12-u04"],"terms":["organization","team","role"]}
+      ]
+    },
+    {
+      "id": "community",
+      "name": "Explore the GitHub community",
+      "weight": "5-10%",
+      "objectives": [
+        {"id":"community-01","text":"Describe benefits of open source and GitHub Sponsors","units":["m09-u01","m09-u02"],"terms":["open source","sponsors"]},
+        {"id":"community-02","text":"Explain how GitHub supports and advances open-source projects","units":["m09-u02","m09-u03"],"terms":["open source","contribution"]},
+        {"id":"community-03","text":"Identify how to follow users and organizations to stay informed about activity","units":["m09-u05"],"terms":["follow"]},
+        {"id":"community-04","text":"Describe the GitHub Marketplace and its purpose","units":["m09-u05"],"terms":["marketplace"]},
+        {"id":"community-05","text":"Explain how InnerSource applies open-source principles within organizations","units":["m10-u01","m10-u02"],"terms":["innersource","open-source"]},
+        {"id":"community-06","text":"Recognize when to use forks, templates, and discoverable repositories to promote collaboration","units":["m09-u03","m10-u02"],"terms":["fork","template","discover"]}
+      ]
+    }
+  ]
+}

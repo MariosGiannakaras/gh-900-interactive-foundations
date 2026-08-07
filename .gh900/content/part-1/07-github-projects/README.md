@@ -207,6 +207,8 @@ Saved views/charts can provide repeatable URLs/perspectives so stakeholders see 
 
 Automation improves the quality of Project data. Better data in turn makes charts/insights more reliable. A Project that depends on humans manually updating every status field will drift more easily than one tied to repository state where appropriate.
 
+The interactive adaptation is account-aware: if the learner can create a real Project, the Issue directs them to inspect the corresponding Project field/workflow/insight surfaces; otherwise the same design decisions are submitted as a structured `/scenario` response. No `project-report.md` worksheet is created.
+
 ---
 
 ## Unit 7 — Module assessment
@@ -233,27 +235,6 @@ The integrated assessment covers:
 Official unit: <https://learn.microsoft.com/en-us/training/modules/manage-work-github-projects/8-summary>
 
 After completing this module you should be able to design a Project structure for a team scenario and explain how views, fields, automation, and insights work together.
-
-## Interactive lab
-
-GitHub Projects permissions/API behavior differ depending on whether the learner is using a fork, personal account, or organization. The module therefore supports two paths:
-
-### Real Project path
-
-If the learner can create a Project:
-
-1. create a Project for the course;
-2. add the module's sample Issues;
-3. create fields for Status, Priority, and Iteration;
-4. create table and board views;
-5. filter/group the views;
-6. configure one supported built-in workflow;
-7. create one insight/chart;
-8. record the Project URL in `labs/module-07/project-report.md`.
-
-### Simulation path
-
-If Project creation is unavailable, the learner completes the same design decisions in a structured Project model file. The engine validates that every official concept has been exercised rather than requiring a paid/organization-specific environment.
 
 ## Official references
 

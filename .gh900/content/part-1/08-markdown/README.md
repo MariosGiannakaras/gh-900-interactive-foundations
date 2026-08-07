@@ -233,15 +233,13 @@ GFM supports footnote-style references in supported Markdown rendering contexts.
 
 Official unit: <https://learn.microsoft.com/en-us/training/modules/communicate-using-markdown/3-communicating-using-markdown>
 
-The integrated exercise requires a real Markdown artifact rather than multiple-choice-only practice.
-
-On `lab/module-08-markdown`, create/update:
+The interactive exercise creates only the current temporary learner workspace. Complete:
 
 ```text
-labs/module-08/markdown-showcase.md
+exercise/markdown-showcase.md
 ```
 
-The file must demonstrate:
+on the generated `lab/m08-u03` branch. The file must demonstrate:
 
 1. hierarchical headings;
 2. bold and italic text;
@@ -259,7 +257,7 @@ The file must demonstrate:
 14. a small Mermaid diagram or another supported rich-Markdown feature;
 15. readable organization and concise prose.
 
-The engine validates the required syntax patterns and then asks the learner to use the same Markdown in an Issue comment so they see both source and rendered forms.
+Use the editor's Markdown preview to compare source and rendered output. Commit and push the artifact; the runtime validator checks the required Markdown structures and then removes the temporary branches after the checkpoint passes. No second worksheet or duplicate Issue-comment submission is required.
 
 ---
 

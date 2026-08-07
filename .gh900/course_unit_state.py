@@ -7,13 +7,15 @@ import re
 from dataclasses import dataclass
 from pathlib import Path
 
+import runtime_protocol
+
 ROOT = Path(__file__).resolve().parents[1]
 DATA = ROOT / ".gh900" / "data"
 TEMPLATES = ROOT / ".gh900" / "templates"
 
 ACTIVITY_OVERRIDES = set()
 SCENARIO_OVERRIDES = {"m03-u07", "m07-u06", "m12-u05", "m13-u05"}
-READ_OVERRIDES = {"m16-u03"}
+CHECKPOINT_OVERRIDES = {"m16-u03"}
 PR_ACTIVITY_MODULES = {2, 9, 14}
 REFLECTION_MODULES = {4, 5, 6, 11, 14, 16}
 
@@ -58,8 +60,8 @@ def load_units() -> list[Unit]:
         number = int(unit_id[-2:])
         part = 1 if module <= 8 else 2
         lower = title.strip().lower()
-        if unit_id in READ_OVERRIDES:
-            mode = "read"
+        if unit_id in CHECKPOINT_OVERRIDES:
+            mode = "checkpoint"
         elif unit_id in SCENARIO_OVERRIDES:
             mode = "scenario"
         elif unit_id in ACTIVITY_OVERRIDES or "exercise" in lower:
@@ -165,25 +167,60 @@ def assessment_questions(module: int) -> tuple[str, int]:
 
 def scenario_instruction(unit: Unit) -> str:
     prompts = {
-        "m03-u07": (
-            "Apply the metered-usage concepts from this unit to a short administration scenario. "
-            "Explain what you would inspect in a usage report, how you would distinguish quantity/usage from cost, "
-            "and what you would verify before making a billing decision."
-        ),
-        "m07-u06": (
-            "Describe a small GitHub Projects automation and insight setup: name a field/status change that should "
-            "trigger automation and explain what view/chart/insight you would use to monitor progress."
-        ),
-        "m12-u05": (
-            "Given repository, organization, and enterprise scopes, explain where you would apply an access or "
-            "governance policy and how least privilege affects the role/permission you choose."
-        ),
-        "m13-u05": (
-            "Explain how team synchronization connects an identity provider/group to a GitHub team, and distinguish "
-            "that synchronization from authentication and authorization."
-        ),
+        "m03-u07": """A paid/enterprise billing environment is not required. Make the same administration decisions in a structured checkpoint.
+
+Reply using this shape (hyphens may replace spaces inside values):
+
+`/scenario usage=<what-is-consumed> cost=<what-is-charged> dimension=<product|sku|repository|organization|period|date|runner> decision=<what-you-verify-before-acting>`
+
+Example structure only: `usage=runner-minutes cost=billed-amount dimension=repository decision=verify-budget-and-included-allowance`.""",
+        "m07-u06": """If your account can create a real Project, inspect the relevant field/workflow/insight UI while making the choices below. If not, the same decisions are validated without requiring organization permissions.
+
+Reply with:
+
+`/scenario trigger=<automation-trigger> field=<status|priority|iteration|assignee|date> insight=<chart|view|burnup|status|progress|iteration> reason=<why-this-combination-helps>`""",
+        "m12-u05": """A public course should not require buying GitHub Enterprise or changing a real company's governance. Choose the appropriate administrative scope and least-privilege role instead.
+
+Reply with:
+
+`/scenario scope=<repository|organization|enterprise> role=<specific-role-or-permission> least_privilege=<yes|enforced|limited|minimum> reason=<why-this-is-the-smallest-correct-scope>`""",
+        "m13-u05": """A real corporate IdP is optional. Model the identity lifecycle explicitly so authentication, provisioning, and team membership cannot be confused.
+
+Reply with:
+
+`/scenario idp=<provider-or-group> team=<github-team> sync=team-sync auth=saml provisioning=scim`""",
     }
     return prompts[unit.id]
+
+
+def checkpoint_instruction(unit: Unit) -> str:
+    if unit.id != "m16-u03":
+        raise KeyError(unit.id)
+    return """### Interactive setup checkpoint
+
+The official Microsoft exercise is **Set up GitHub Copilot to work with Visual Studio Code**. This course does not require you to buy Copilot and does not pretend that Actions can see private editor telemetry.
+
+**If Copilot is available:**
+1. Open Visual Studio Code or a Codespace.
+2. Confirm GitHub sign-in and locate Copilot/Chat or inline suggestions.
+3. Review at least one suggestion interaction (accept/reject/cycle is sufficient).
+4. Confirm that the Python environment you will use later is available.
+
+Submit, for example:
+
+`/checkpoint access=available editor=vscode signin=confirmed interface=both suggestion=reviewed python=ready copilot=located`
+
+**If Copilot is unavailable:**
+1. Open/review the official Microsoft Learn exercise linked above.
+2. Follow the setup steps conceptually in VS Code or a Codespace without claiming Copilot was actually used.
+3. Complete the course fallback by identifying sign-in, Copilot UI, suggestion review, and Python-environment steps.
+
+Submit, for example:
+
+`/checkpoint access=unavailable editor=vscode signin=understood interface=understood suggestion=understood python=understood official=reviewed fallback=completed`
+
+> [!NOTE]
+> This checkpoint validates the required setup decisions honestly; it does not fabricate proof of an entitlement or editor action that GitHub Actions cannot observe."""
 
 
 def _activity_steps(unit: Unit) -> str:
@@ -307,7 +344,7 @@ Commit and push the completed InnerSource toolkit. Every artifact is temporary a
 5. Open **Blame** for `exercise/history-fixture.txt` on **`{unit.sandbox}`** and compare the commit/history shown there with the PR history (merge method can affect the visible target-branch commit).
 6. Apply the prepared `gh900-history` label and the prepared Module 15 milestone to the regression Issue, and assign the Issue to yourself.
 7. Add an Issue comment containing an `@mention`, the historical PR reference, and the regression commit SHA from the PR.
-8. Back in the course Issue, submit **`/investigation issue=#N pr=#N commit=<regression-commit-sha> explanation=<what the linked history tells you>`**.
+8. Back in the course Issue, submit **`/investigation issue=#N pr=#N commit=<regression-commit-sha> explanation=<what-the-linked-history-tells-you>`**.
 9. Comment `/check` when the investigation and Issue metadata are complete."""
     if m == 16:
         return """Update the supplied FastAPI exercise while preserving the independently written implementation target:
@@ -326,6 +363,25 @@ Commit and push the completed InnerSource toolkit. Every artifact is temporary a
     return "Complete the GitHub/repository task described in this unit and push the resulting temporary learner state."
 
 
+def _where_to_click(unit: Unit) -> str:
+    blocks = {
+        2: "**Issue:** Issues → New issue. **PR:** Pull requests → New pull request → set base to the temporary `sandbox/...` branch and compare to `lab/...`.\n\nIf the branches are not visible, refresh after the setup Action finishes.",
+        4: "Open **Security → Code scanning** for alerts/setup surfaces and **Actions** for workflow runs. Some code-scanning UI depends on repository/account capabilities; use the supplied SARIF/configuration exercise when unavailable.",
+        5: "In VS Code/Codespaces, use the Copilot status/menu and Chat/inline suggestion surfaces where available. If unavailable, use the prompt-review fallback in this Issue instead of claiming a Copilot action occurred.",
+        6: "Use **Code → Codespaces** to create/open a Codespace. For github.dev press `.` on a repository page or open the web editor. Account quotas/policies can affect Codespaces availability.",
+        8: "Edit the generated `exercise/markdown-showcase.md` on the temporary learner branch. Use **Preview** in the editor to compare source with rendered Markdown.",
+        9: "Use **Issues** for intent/assignment and **Pull requests** for the contribution. Keep the temporary Issue and PR linked; do not target `main`.",
+        11: "Use **Security** to inspect dependency/secret/code-scanning surfaces where available. The required configuration files are created only for this temporary exercise.",
+        14: "In the PR use **Conversation**, **Commits**, **Checks**, and **Files changed**. Start as Draft, then use **Ready for review**, add an inline comment from Files changed, and push the follow-up fix.",
+        15: "Use repository **Search**, the merged PR **Commits/Files changed**, file **Blame**, and the temporary Issue metadata controls for label, milestone, and assignee.",
+        16: "For the API exercise use the temporary branch in VS Code/Codespaces, run the tests, start Uvicorn, then open `/docs`. Copilot is optional; the fallback remains valid when entitlement is unavailable.",
+    }
+    text = blocks.get(unit.module)
+    if not text:
+        return ""
+    return f"\n\n<details>\n<summary><strong>Where to click / troubleshooting</strong></summary>\n\n{text}\n\n</details>"
+
+
 def activity_instruction(unit: Unit) -> str:
     pr_note = ""
     if unit.module in PR_ACTIVITY_MODULES:
@@ -339,7 +395,8 @@ def activity_instruction(unit: Unit) -> str:
         f"Use **`{unit.branch}`** as the learner branch.\n\n"
         f"{_activity_steps(unit)}\n\n"
         "The instructions in this Issue are the source of truth; internal course files are not required reading."
-        f"{pr_note}\n\n"
+        f"{pr_note}"
+        f"{_where_to_click(unit)}\n\n"
         "> [!TIP]\n> Repository pushes/PR events validate automatically when possible. Use `/check` for a recovery/manual recheck."
     )
 
@@ -349,19 +406,13 @@ def continuation(unit: Unit) -> str:
         extra = ""
         if unit.id == "m08-u05":
             extra = "\n\n> [!IMPORTANT]\n> Completing this step finishes **GitHub Foundations Part 1 of 2**."
-        return (
-            f"{extra}\n\n### Continue\n\n"
-            "When ready, comment exactly **`/next`**."
-        ).strip()
+        return (f"{extra}\n\n### Continue\n\nWhen ready, comment exactly **`/next`**.").strip()
+    if unit.mode == "checkpoint":
+        return checkpoint_instruction(unit)
     if unit.mode == "activity":
         return activity_instruction(unit)
     if unit.mode == "scenario":
-        return (
-            "### Apply it\n\n"
-            f"{scenario_instruction(unit)}\n\n"
-            "Reply with **`/scenario `** followed by your answer. The response is checked for the required concepts; "
-            "no worksheet file is created."
-        )
+        return f"### Apply it\n\n{scenario_instruction(unit)}\n\nNo worksheet file is created."
     questions, count = assessment_questions(unit.module)
     return (
         "## Check your understanding\n\n"
@@ -375,7 +426,6 @@ def continuation(unit: Unit) -> str:
 def _modernize_section(unit: Unit, section: str) -> str:
     if unit.mode != "activity" or not unit.branch:
         return section
-
     section = re.sub(r"`lab/module-[^`]+`", f"`{unit.branch}`", section)
     section = re.sub(
         r"create the module branch\s+`[^`]+`",
@@ -385,7 +435,6 @@ def _modernize_section(unit: Unit, section: str) -> str:
     )
     section = section.replace("create/edit the module lab file", "edit the temporary exercise artifact created for this unit")
     section = section.replace("module lab file", "temporary exercise artifact")
-
     path_replacements = {
         "m08-u03": {"labs/module-08/markdown-showcase.md": "exercise/markdown-showcase.md"},
         "m10-u03": {
@@ -393,17 +442,13 @@ def _modernize_section(unit: Unit, section: str) -> str:
             "labs/module-10/CONTRIBUTING.md": "exercise/CONTRIBUTING.md",
             "labs/module-10/CODEOWNERS": "exercise/CODEOWNERS",
         },
-        "m15-u03": {
-            "labs/module-15/history-investigation.md": "the `/investigation ...` response in this course Issue"
-        },
+        "m15-u03": {"labs/module-15/history-investigation.md": "the `/investigation ...` response in this course Issue"},
     }
     for old, new in path_replacements.get(unit.id, {}).items():
         section = section.replace(old, new)
-
     if unit.module in PR_ACTIVITY_MODULES:
         section = section.replace("against `main`", f"against `{unit.sandbox}`")
         section = section.replace("into `main`", f"into `{unit.sandbox}`")
-
     section = section.replace("Our integrated lab", "The interactive exercise")
     section = section.replace("Our integrated exercise", "The interactive exercise")
     section = section.replace("The integrated course", "The interactive exercise")
@@ -411,10 +456,7 @@ def _modernize_section(unit: Unit, section: str) -> str:
     section = section.replace("in the learner’s own fork", "in the temporary learner workspace")
     section = section.replace("in the worksheet", "in the course Issue reflection")
     section = section.replace("the worksheet", "the course Issue reflection")
-    section = section.replace(
-        "delete the merged source branch when instructed",
-        "let the course clean the temporary branches after validation",
-    )
+    section = section.replace("delete the merged source branch when instructed", "let the course clean the temporary branches after validation")
     return section
 
 
@@ -429,6 +471,7 @@ def render(unit: Unit) -> str:
     elif unit.id == "m09-u01":
         intro = "> [!IMPORTANT]\n> **Part 1 complete. GitHub Foundations Part 2 of 2 starts here.**\n\n"
     return (
+        f"{runtime_protocol.lesson_marker(unit.id)}\n"
         f"{intro}"
         f"# {unit.title}\n\n"
         f"| Course position | Progress |\n"
@@ -459,13 +502,13 @@ def as_dict(unit: Unit) -> dict[str, object]:
 
 
 def main() -> int:
-    p = argparse.ArgumentParser()
-    p.add_argument("--unit")
-    p.add_argument("--first", action="store_true")
-    p.add_argument("--next", action="store_true")
-    p.add_argument("--render", action="store_true")
-    p.add_argument("--list-json", action="store_true")
-    args = p.parse_args()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--unit")
+    parser.add_argument("--first", action="store_true")
+    parser.add_argument("--next", action="store_true")
+    parser.add_argument("--render", action="store_true")
+    parser.add_argument("--list-json", action="store_true")
+    args = parser.parse_args()
     units = load_units()
     if args.list_json:
         print(json.dumps([as_dict(u) for u in units], indent=2))

@@ -212,6 +212,8 @@ This is important for reliable offboarding.
 
 Enterprise Managed Users relies heavily on enterprise-controlled provisioning and identity policy. Managed user accounts should not be treated like normal personal accounts that the employee independently controls.
 
+The interactive adaptation is the structured `/scenario` checkpoint in this unit. A real corporate IdP is optional: learners with appropriate enterprise access can inspect the corresponding identity/team settings, while everyone must explicitly distinguish the IdP/group, GitHub team, team synchronization, SAML authentication, and SCIM provisioning. No identity worksheet or fake tenant is created.
+
 ---
 
 ## Unit 6 — Module assessment
@@ -238,24 +240,6 @@ The integrated assessment covers:
 Official unit: <https://learn.microsoft.com/en-us/training/modules/authenticate-authorize-user-identities-github/7-summary>
 
 After this module you should be able to trace a user from identity creation through authentication, authorization, team assignment, and eventual deprovisioning.
-
-## Interactive identity simulation
-
-A public training repository cannot safely provision corporate SAML/SCIM/EMU tenants. The lab therefore uses a structured enterprise identity simulation.
-
-The learner must model:
-
-1. a new employee joining an engineering group;
-2. SAML authentication;
-3. SCIM provisioning;
-4. team synchronization;
-5. repository permissions derived from the team;
-6. a contractor using restricted access;
-7. a GitHub App vs OAuth App integration decision;
-8. PAT/SSH authorization in an SSO-protected organization;
-9. employee offboarding/deprovisioning.
-
-The engine validates that each distinct IAM layer is represented correctly.
 
 ## Official references
 

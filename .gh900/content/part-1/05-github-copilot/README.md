@@ -78,7 +78,7 @@ The current product family includes agentic capabilities that can perform multi-
 - **completion/chat** primarily proposes information/code interactively;
 - **agentic workflows** can plan and execute multiple related development steps under user direction and review.
 
-For GH-900, recognize the purpose of agent-style assistance and organization policies rather than memorizing a transient UI label.
+Agent Mode coordinates multi-step editor work, and current Copilot experiences can offer multiple AI models rather than a single fixed model. For GH-900, recognize agent-style assistance, Agent Mode, model choice, and organization policies rather than memorizing a transient UI label.
 
 ### Copilot plans
 
@@ -199,23 +199,19 @@ Official unit: <https://learn.microsoft.com/en-us/training/modules/introduction-
 
 The official exercise asks the learner to use Copilot in a GitHub-hosted/VS Code environment, prompt for suggestions, and accept/review code suggestions.
 
-Our integrated exercise uses `lab/module-05-copilot` and a small programming task.
+The interactive exercise creates `lab/m05-u05` with `exercise/copilot-practice.py` and executable tests. The learner:
 
-You will:
+1. opens the temporary workspace in Codespaces or VS Code;
+2. confirms Copilot access if available;
+3. reads the required behavior before coding;
+4. uses inline suggestions, chat, or agent assistance where available;
+5. implements the required deterministic behavior;
+6. keeps/adds executable tests and runs them;
+7. reviews generated/suggested code manually rather than accepting it blindly;
+8. posts a unit-scoped `/reflection ...` describing the interaction mode or fallback and at least one suggestion that was rejected or changed;
+9. commits and pushes the final implementation.
 
-1. open the course repository in Codespaces or VS Code;
-2. confirm Copilot access if available;
-3. read the task specification before coding;
-4. use inline suggestion/chat/agent assistance if available;
-5. implement the required behavior;
-6. add tests;
-7. review generated code manually;
-8. record which Copilot interaction modes you used and what you rejected/changed;
-9. run tests and commit the final implementation.
-
-Because GitHub cannot reliably prove whether a human or Copilot typed a line, the engine validates the **resulting code, tests, and reflection artifact**, while the hands-on instructions require actual Copilot interaction for learners who have access.
-
-If a learner has no eligible Copilot entitlement, the course provides a scenario-based fallback so the theory is still fully assessable without pretending AI usage occurred.
+GitHub cannot reliably prove whether a human or Copilot typed a line. The validator therefore checks the resulting repository behavior/tests plus the reflection for this unit. When Copilot is unavailable, the lesson uses an explicit prompt-review fallback rather than claiming Copilot was used; no purchase is required.
 
 ---
 
