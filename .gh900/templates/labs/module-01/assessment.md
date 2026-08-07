@@ -1,6 +1,4 @@
-# Module 1 assessment — Introduction to Git
-
-Complete this only when the interactive course tells you to. For each question, check **exactly one** answer by changing `[ ]` to `[x]`. Do not change the question or answer text.
+# Module 1 assessment questions
 
 ## Q1
 

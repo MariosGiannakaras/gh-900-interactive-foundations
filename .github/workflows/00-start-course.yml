@@ -9,6 +9,12 @@ permissions:
   contents: write
   issues: write
 
+# The bootstrap commit triggers this workflow again. Serialize both runs so the
+# self-triggered recovery run cannot race the first lesson comment.
+concurrency:
+  group: gh900-start-${{ github.repository }}
+  cancel-in-progress: false
+
 jobs:
   start:
     if: |
@@ -29,7 +35,7 @@ jobs:
           COURSE_TITLE: "GH-900 Interactive Foundations — Course"
         run: |
           set -euo pipefail
-          existing=$(gh issue list --state all --limit 100 --json number,title \
+          existing=$(gh issue list --state all --limit 1000 --json number,title \
             | jq -r --arg title "$COURSE_TITLE" '.[] | select(.title == $title) | .number' \
             | head -n 1)
           if [[ -n "$existing" ]]; then
@@ -101,7 +107,7 @@ jobs:
           set -euo pipefail
           # A previous attempt may have created the Issue but failed before posting the
           # first lesson. Detect any rendered course unit by its stable progress table.
-          if gh api --paginate "repos/${GITHUB_REPOSITORY}/issues/${ISSUE_NUMBER}/comments" \
+          if gh api --paginate "repos/${GITHUB_REPOSITORY}/issues/${ISSUE_NUMBER}/comments?per_page=100" \
             --jq '.[].body' | grep -Fq '| Course position | Progress |'; then
             echo "Course unit already present; startup is complete."
             exit 0

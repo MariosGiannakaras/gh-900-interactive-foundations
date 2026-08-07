@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Verify that every on-demand workspace dependency exists before release."""
+"""Verify on-demand workspace, assessment, and runtime resilience contracts."""
 from __future__ import annotations
 
 import re
@@ -14,13 +14,20 @@ sys.path.insert(0, str(GH900))
 import course_unit_state as state  # noqa: E402
 
 EXPECTED_ACTIVITY_MODULES = {1, 2, 4, 5, 6, 8, 9, 10, 11, 14, 15, 16}
+LEGACY_ASSESSMENT_MARKERS = (
+    "ACTIVITY_STATUS",
+    "REPLACE_ME",
+    "EVIDENCE_",
+    "Read `modules/",
+    "Work on branch `lab/module-",
+)
 
 
 def main() -> int:
     errors: list[str] = []
     workspace = (GH900 / "workspace.py").read_text(encoding="utf-8")
 
-    # Keep copy_template() calls and hidden source fixtures in lock-step.
+    # Keep copy_template() calls and actual exercise fixtures in lock-step.
     calls = re.findall(r'copy_template\((\d+),\s*"([^"]+)",\s*"([^"]+)"\)', workspace)
     if not calls:
         errors.append("workspace.py contains no parseable copy_template contracts")
@@ -49,13 +56,21 @@ def main() -> int:
         if marker not in workspace:
             errors.append(f"workspace.py has no provisioning branch for activity Module {module}")
 
-    # Assessments are rendered from hidden source only; learner worksheets must never
-    # be required. Verify all 16 question sources remain parseable here as a fixture gate.
+    # Assessments are Issue-native. Hidden Markdown files are question sources only;
+    # old evidence/submission worksheet instructions must never return.
     for module in range(1, 17):
+        source = TEMPLATES / "labs" / f"module-{module:02d}" / ("assessment.md" if module == 1 else "submission.md")
+        if not source.exists():
+            errors.append(f"Module {module} assessment source is missing: {source.relative_to(ROOT)}")
+            continue
+        source_text = source.read_text(encoding="utf-8")
+        for marker in LEGACY_ASSESSMENT_MARKERS:
+            if marker in source_text:
+                errors.append(f"Module {module} assessment source still contains legacy worksheet marker: {marker}")
         try:
             _, count = state.assessment_questions(module)
         except Exception as exc:
-            errors.append(f"Module {module} assessment fixture cannot render: {exc}")
+            errors.append(f"Module {module} assessment source cannot render: {exc}")
             continue
         expected = 12 if module == 1 else 6
         if count != expected:
@@ -67,13 +82,34 @@ def main() -> int:
         if not path.exists():
             errors.append(f"Module 16 FastAPI fixture is missing {path.relative_to(ROOT)}")
 
+    # Runtime anti-stall/idempotency contracts. These are deliberately text-level so
+    # a future refactor cannot silently remove the safeguards without replacing them.
+    start = (ROOT / ".github" / "workflows" / "00-start-course.yml").read_text(encoding="utf-8")
+    engine = (ROOT / ".github" / "workflows" / "01-course-engine.yml").read_text(encoding="utf-8")
+    for marker in (
+        "concurrency:",
+        "gh900-start-${{ github.repository }}",
+        "cancel-in-progress: false",
+    ):
+        if marker not in start:
+            errors.append(f"Step 0 startup serialization contract is missing: {marker}")
+    for marker in (
+        "COMMENT_ID:",
+        "comment_matches_current_unit()",
+        "Ignoring a stale/ambiguous course command",
+        "timeout --signal=TERM --kill-after=5s 90s python3 .gh900/validate_activity.py",
+        "cleanup_stale_course_branches()",
+    ):
+        if marker not in engine:
+            errors.append(f"Course engine resilience contract is missing: {marker}")
+
     if errors:
-        print("Fixture contract failures:")
+        print("Fixture/runtime contract failures:")
         for item in errors:
             print(f"- {item}")
         return 1
 
-    print(f"Fixture contracts passed: {len(calls)} copied fixtures, 12 activity modules, 16 assessments.")
+    print(f"Fixture/runtime contracts passed: {len(calls)} copied fixtures, 12 activity modules, 16 clean assessments, serialized/idempotent runtime.")
     return 0
 
 
