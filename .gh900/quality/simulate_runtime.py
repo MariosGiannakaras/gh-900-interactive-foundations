@@ -80,38 +80,54 @@ def main() -> int:
     if state.find("m16-u03").mode != "checkpoint":
         errors.append("m16-u03 must be an account-aware checkpoint")
 
-    # Simulate duplicate/stale comments and unit-scoped evidence.
+    # Simulate duplicate/stale comments, user-authored marker spoofing, and scoped evidence.
+    bot = {"login": runtime_protocol.AUTOMATION_LOGIN, "type": "Bot"}
+    learner = {"login": "learner", "type": "User"}
     comments = [
-        {"id": 10, "body": runtime_protocol.lesson_marker("m01-u01") + "\nlesson"},
-        {"id": 11, "body": "/next"},
-        {"id": 12, "body": runtime_protocol.lesson_marker("m01-u02") + "\nlesson"},
-        {"id": 13, "body": "/next"},
-        {"id": 14, "body": "/reflection old evidence"},
-        {"id": 15, "body": runtime_protocol.lesson_marker("m04-u05") + "\nlesson"},
-        {"id": 16, "body": "/reflection default advanced SARIF Security workflow observation"},
-        {"id": 17, "body": "acknowledgement without marker"},
-        {"id": 18, "body": "/check"},
+        {"id": 10, "user": bot, "body": runtime_protocol.lesson_marker("m01-u01") + "\nlesson"},
+        {"id": 11, "user": learner, "body": "/next"},
+        {"id": 12, "user": bot, "body": runtime_protocol.lesson_marker("m01-u02") + "\nlesson"},
+        {"id": 13, "user": learner, "body": "/next"},
+        {"id": 14, "user": learner, "body": "/reflection old evidence"},
+        {"id": 15, "user": bot, "body": runtime_protocol.lesson_marker("m04-u05") + "\nlesson"},
+        {"id": 16, "user": learner, "body": "/reflection default advanced SARIF Security workflow observation"},
+        {"id": 17, "user": learner, "body": runtime_protocol.lesson_marker("m16-u03") + "\nspoofed learner marker"},
+        {"id": 18, "user": learner, "body": "/check"},
     ]
     if runtime_protocol.response_matches_unit(comments, 13, "m01-u01"):
         errors.append("stale duplicate command incorrectly matches a previous unit")
     if not runtime_protocol.response_matches_unit(comments, 13, "m01-u02"):
         errors.append("current-unit command association failed")
+    if runtime_protocol.authoritative_lesson_marker(comments[7]) is not None:
+        errors.append("learner-authored gh900-unit marker was incorrectly treated as authoritative")
+    if not runtime_protocol.response_matches_unit(comments, 18, "m04-u05"):
+        errors.append("learner-authored marker spoof changed response scoping")
+    if runtime_protocol.response_matches_unit(comments, 18, "m16-u03"):
+        errors.append("learner-authored marker spoof became the current unit")
     scoped = runtime_protocol.bodies_for_unit(comments, "/reflection ", "m04-u05")
     if scoped != ["/reflection default advanced SARIF Security workflow observation"]:
         errors.append("unit-scoped reflection selection is incorrect")
 
-    # Structured scenarios must accept a coherent decision and reject keyword essays.
+    # Structured scenarios must accept coherent decisions and reject keyword/relationship bypasses.
     valid_scenarios = {
         "m03-u07": "usage=runner-minutes cost=billed-amount dimension=repository decision=verify-budget-and-allowance",
         "m07-u06": "trigger=status-change field=status insight=chart reason=show-progress-after-status-change",
-        "m12-u05": "scope=organization role=maintain least_privilege=yes reason=limit-access-to-required-org-scope",
+        "m12-u05": "scope=repository role=maintain least_privilege=yes reason=limit-access-to-required-repository",
         "m13-u05": "idp=entra-engineering team=platform sync=team-sync auth=saml provisioning=scim",
+    }
+    invalid_structured = {
+        "m03-u07": "usage=anything cost=billed-amount dimension=repository decision=verify-budget-and-allowance",
+        "m07-u06": "trigger=iteration-change field=assignee insight=progress reason=track-progress-across-iterations",
+        "m12-u05": "scope=enterprise role=maintain least_privilege=yes reason=limit-access-to-required-enterprise",
+        "m13-u05": "idp=platform team=platform sync=team-sync auth=saml provisioning=scim",
     }
     for uid, response in valid_scenarios.items():
         if run_validator("validate_scenario.py", "--unit", uid, "--response", response) != 0:
             errors.append(f"{uid}: valid structured scenario did not pass")
         if run_validator("validate_scenario.py", "--unit", uid, "--response", "authentication authorization policy team usage cost " * 20) == 0:
             errors.append(f"{uid}: unstructured keyword stuffing unexpectedly passed")
+        if run_validator("validate_scenario.py", "--unit", uid, "--response", invalid_structured[uid]) == 0:
+            errors.append(f"{uid}: incoherent structured scenario unexpectedly passed")
 
     available = "access=available editor=vscode signin=confirmed interface=both suggestion=reviewed python=ready copilot=located"
     unavailable = "access=unavailable editor=vscode signin=understood interface=understood suggestion=understood python=understood official=reviewed fallback=completed"
