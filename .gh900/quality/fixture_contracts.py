@@ -2,6 +2,7 @@
 """Verify on-demand workspace, assessment, and runtime resilience contracts."""
 from __future__ import annotations
 
+import json
 import re
 import sys
 from pathlib import Path
@@ -58,6 +59,14 @@ def main() -> int:
 
     # Assessments are Issue-native. Hidden Markdown files are question sources only;
     # old evidence/submission worksheet instructions must never return.
+    assessment_hashes = json.loads((GH900 / "data" / "assessment-hashes.json").read_text(encoding="utf-8"))
+    expected_modules = {f"{module:02d}" for module in range(1, 17)}
+    if set(assessment_hashes) != expected_modules:
+        errors.append(
+            "Assessment hash store must contain exactly Modules 01-16: "
+            f"got {sorted(assessment_hashes)}"
+        )
+
     for module in range(1, 17):
         source = TEMPLATES / "labs" / f"module-{module:02d}" / ("assessment.md" if module == 1 else "submission.md")
         if not source.exists():
@@ -75,6 +84,16 @@ def main() -> int:
         expected = 12 if module == 1 else 6
         if count != expected:
             errors.append(f"Module {module} expected {expected} assessment questions, got {count}")
+
+        module_hashes = assessment_hashes.get(f"{module:02d}", {})
+        expected_questions = {f"Q{i}" for i in range(1, expected + 1)}
+        if set(module_hashes) != expected_questions:
+            errors.append(
+                f"Module {module} assessment hashes do not match its {expected} question IDs"
+            )
+        for question, value in module_hashes.items():
+            if not re.fullmatch(r"[0-9a-f]{64}", str(value)):
+                errors.append(f"Module {module} {question} has an invalid SHA-256 answer hash")
 
     # Critical final-module fixture alignment: these files are generated together.
     for name in ("app.py", "test_app.py", "requirements.txt"):
@@ -109,7 +128,10 @@ def main() -> int:
             print(f"- {item}")
         return 1
 
-    print(f"Fixture/runtime contracts passed: {len(calls)} copied fixtures, 12 activity modules, 16 clean assessments, serialized/idempotent runtime.")
+    print(
+        f"Fixture/runtime contracts passed: {len(calls)} copied fixtures, 12 activity modules, "
+        "16 clean assessments with complete hash coverage, serialized/idempotent runtime."
+    )
     return 0
 
 
