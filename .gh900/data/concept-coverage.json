@@ -86,7 +86,7 @@
     "m11-u03": [["dependabot"], ["secret scanning"], ["code scanning"], ["dependency graph"]],
     "m11-u04": [["dependabot"], ["security.md"], ["codeowners"], ["secret", "rotation"]],
     "m11-u05": [["security"], ["dependabot"], ["secret scanning"]],
-    "m11-u06": [["secure"], ["supply chain", "supply-chain"], ["repository"]],
+    "m11-u06": [["secure"], ["dependency management", "automated scanning"], ["repository", "security strategy"]],
 
     "m12-u01": [["administration"], ["github"]],
     "m12-u02": [["repository", "organization", "enterprise"], ["administration", "owner", "outside collaborator"]],
