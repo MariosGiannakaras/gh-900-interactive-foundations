@@ -64,6 +64,9 @@ jobs:
       - name: Audit public repository and complete 106-unit runtime
         run: python3 .gh900/quality/audit.py
 
+      - name: Audit canonical lesson source against runtime model
+        run: python3 .gh900/quality/source_consistency.py
+
       - name: Audit on-demand workspace fixture contracts
         run: python3 .gh900/quality/fixture_contracts.py
 
@@ -91,6 +94,7 @@ jobs:
           .gh900/validate_checkpoint.py
           .gh900/validate_scenario.py
           .gh900/quality/audit.py
+          .gh900/quality/source_consistency.py
           .gh900/quality/fixture_contracts.py
           .gh900/quality/semantic.py
           .gh900/quality/concept_coverage.py
