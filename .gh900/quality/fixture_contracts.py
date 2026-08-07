@@ -29,10 +29,12 @@ LEGACY_ASSESSMENT_MARKERS = (
 
 
 def check_merged_pr_event_lookup(errors: list[str]) -> None:
-    """Closed+merged PR events must not depend on the eventually-consistent PR list."""
+    """Closed+merged PR events must not depend on another PR index."""
     original_gh_json = activity_validator.core.gh_json
+    original_gh_api_json = activity_validator.core.gh_api_json
     original_pr_number = os.environ.get("PR_NUMBER")
     original_actions = os.environ.get("GITHUB_ACTIONS")
+    original_repo = os.environ.get("GITHUB_REPOSITORY")
     calls: list[list[str]] = []
 
     def fake_gh_json(args: list[str]) -> object | None:
@@ -55,17 +57,20 @@ def check_merged_pr_event_lookup(errors: list[str]) -> None:
 
     try:
         os.environ["GITHUB_ACTIONS"] = "true"
+        os.environ["GITHUB_REPOSITORY"] = "example/course"
         os.environ["PR_NUMBER"] = "42"
         activity_validator.core.gh_json = fake_gh_json
+        activity_validator.core.gh_api_json = lambda endpoint: []
         result = activity_validator.merged_pr_for_unit("m02-u06")
         if not isinstance(result, dict) or result.get("number") != 42:
             errors.append("Merged PR closed-event lookup did not resolve the exact event PR")
         if not calls or calls[0][:3] != ["pr", "view", "42"]:
-            errors.append("Merged PR lookup must query the exact event PR before the merged PR list")
+            errors.append("Merged PR lookup must query the exact event PR first")
         if any(call[:2] == ["pr", "list"] for call in calls):
-            errors.append("Merged PR lookup unnecessarily fell back to the merged PR list after an exact event match")
+            errors.append("Merged PR lookup unnecessarily fell back after an exact event match")
     finally:
         activity_validator.core.gh_json = original_gh_json
+        activity_validator.core.gh_api_json = original_gh_api_json
         if original_pr_number is None:
             os.environ.pop("PR_NUMBER", None)
         else:
@@ -74,6 +79,81 @@ def check_merged_pr_event_lookup(errors: list[str]) -> None:
             os.environ.pop("GITHUB_ACTIONS", None)
         else:
             os.environ["GITHUB_ACTIONS"] = original_actions
+        if original_repo is None:
+            os.environ.pop("GITHUB_REPOSITORY", None)
+        else:
+            os.environ["GITHUB_REPOSITORY"] = original_repo
+
+
+def check_merged_pr_recovery_lookup(errors: list[str]) -> None:
+    """Manual /check recovery must accept durable REST merged-PR evidence."""
+    original_gh_json = activity_validator.core.gh_json
+    original_gh_api_json = activity_validator.core.gh_api_json
+    original_pr_number = os.environ.get("PR_NUMBER")
+    original_actions = os.environ.get("GITHUB_ACTIONS")
+    original_repo = os.environ.get("GITHUB_REPOSITORY")
+    api_calls: list[str] = []
+    legacy_calls: list[list[str]] = []
+
+    def fake_api(endpoint: str) -> object | None:
+        api_calls.append(endpoint)
+        if endpoint.endswith("/pulls?state=closed&per_page=100"):
+            return [
+                {
+                    "number": 4,
+                    "title": "Complete M02-U06 GitHub Flow exercise",
+                    "state": "closed",
+                    "merged_at": "2026-08-07T10:04:46Z",
+                    "merge_commit_sha": "8fa22ce",
+                    "head": {"ref": "lab/m02-u06"},
+                    "base": {"ref": "sandbox/m02-u06"},
+                    "body": "Closes #3",
+                }
+            ]
+        if endpoint.endswith("/issues/4/comments?per_page=100"):
+            return [{"body": "review addressed", "user": {"login": "learner"}}]
+        if endpoint.endswith("/pulls/4/commits?per_page=100"):
+            return [{"sha": "abc123"}]
+        return None
+
+    def fake_gh_json(args: list[str]) -> object | None:
+        legacy_calls.append(args)
+        return []
+
+    try:
+        os.environ["GITHUB_ACTIONS"] = "true"
+        os.environ["GITHUB_REPOSITORY"] = "example/course"
+        os.environ.pop("PR_NUMBER", None)
+        activity_validator.core.gh_api_json = fake_api
+        activity_validator.core.gh_json = fake_gh_json
+        result = activity_validator.merged_pr_for_unit("m02-u06")
+        if not isinstance(result, dict) or result.get("number") != 4:
+            errors.append("Manual recovery did not resolve durable REST merged-PR evidence")
+        if isinstance(result, dict):
+            if result.get("headRefName") != "lab/m02-u06" or result.get("baseRefName") != "sandbox/m02-u06":
+                errors.append("Durable REST merged-PR normalization lost head/base refs")
+            comments = result.get("comments", [])
+            if not isinstance(comments, list) or not comments or comments[0].get("author", {}).get("login") != "learner":
+                errors.append("Durable REST merged-PR normalization lost conversation authors")
+        if any(call[:2] == ["pr", "list"] for call in legacy_calls):
+            errors.append("Manual recovery unnecessarily used the legacy merged PR list after a REST match")
+        if not any(endpoint.endswith("/pulls?state=closed&per_page=100") for endpoint in api_calls):
+            errors.append("Manual recovery did not query the durable REST pull-request endpoint")
+    finally:
+        activity_validator.core.gh_json = original_gh_json
+        activity_validator.core.gh_api_json = original_gh_api_json
+        if original_pr_number is None:
+            os.environ.pop("PR_NUMBER", None)
+        else:
+            os.environ["PR_NUMBER"] = original_pr_number
+        if original_actions is None:
+            os.environ.pop("GITHUB_ACTIONS", None)
+        else:
+            os.environ["GITHUB_ACTIONS"] = original_actions
+        if original_repo is None:
+            os.environ.pop("GITHUB_REPOSITORY", None)
+        else:
+            os.environ["GITHUB_REPOSITORY"] = original_repo
 
 
 def check_runtime_cache_cleanup(errors: list[str]) -> None:
@@ -102,7 +182,6 @@ def main() -> int:
     errors: list[str] = []
     workspace = (GH900 / "workspace.py").read_text(encoding="utf-8")
 
-    # Keep copy_template() calls and actual exercise fixtures in lock-step.
     calls = re.findall(r'copy_template\((\d+),\s*"([^"]+)",\s*"([^"]+)"\)', workspace)
     if not calls:
         errors.append("workspace.py contains no parseable copy_template contracts")
@@ -125,14 +204,11 @@ def main() -> int:
             f"expected {sorted(EXPECTED_ACTIVITY_MODULES)}, got {sorted(activity_modules)}"
         )
 
-    # Every practical module must have a provisioning branch in workspace.py.
     for module in sorted(EXPECTED_ACTIVITY_MODULES):
         marker = "if module == 1:" if module == 1 else f"elif module == {module}:"
         if marker not in workspace:
             errors.append(f"workspace.py has no provisioning branch for activity Module {module}")
 
-    # Assessments are Issue-native. Hidden Markdown files are question sources only;
-    # old evidence/submission worksheet instructions must never return.
     assessment_hashes = json.loads((GH900 / "data" / "assessment-hashes.json").read_text(encoding="utf-8"))
     expected_modules = {f"{module:02d}" for module in range(1, 17)}
     if set(assessment_hashes) != expected_modules:
@@ -162,47 +238,29 @@ def main() -> int:
         module_hashes = assessment_hashes.get(f"{module:02d}", {})
         expected_questions = {f"Q{i}" for i in range(1, expected + 1)}
         if set(module_hashes) != expected_questions:
-            errors.append(
-                f"Module {module} assessment hashes do not match its {expected} question IDs"
-            )
+            errors.append(f"Module {module} assessment hashes do not match its {expected} question IDs")
         for question, value in module_hashes.items():
             if not re.fullmatch(r"[0-9a-f]{64}", str(value)):
                 errors.append(f"Module {module} {question} has an invalid SHA-256 answer hash")
                 continue
-            matches = [
-                answer
-                for answer in "ABC"
-                if assessment_validator.digest(module, question, answer) == value
-            ]
+            matches = [answer for answer in "ABC" if assessment_validator.digest(module, question, answer) == value]
             if len(matches) != 1:
                 errors.append(
                     f"Module {module} {question} hash must resolve to exactly one valid A/B/C answer; got {matches}"
                 )
 
-    # Critical final-module fixture alignment: these files are generated together.
     for name in ("app.py", "test_app.py", "requirements.txt"):
         path = TEMPLATES / "labs" / "module-16" / name
         if not path.exists():
             errors.append(f"Module 16 FastAPI fixture is missing {path.relative_to(ROOT)}")
 
-    # pull_request.closed can arrive before `gh pr list --state merged` catches up.
-    # The exact event PR must be sufficient evidence when its head/base and merge
-    # state match the current unit.
     check_merged_pr_event_lookup(errors)
-
-    # Python imports happen before temporary learner branches are committed. Make
-    # sure those interpreter caches are explicitly removed from the generated state.
+    check_merged_pr_recovery_lookup(errors)
     check_runtime_cache_cleanup(errors)
 
-    # Runtime anti-stall/idempotency contracts. These are deliberately text-level so
-    # a future refactor cannot silently remove the safeguards without replacing them.
     start = (ROOT / ".github" / "workflows" / "00-start-course.yml").read_text(encoding="utf-8")
     engine = (ROOT / ".github" / "workflows" / "01-course-engine.yml").read_text(encoding="utf-8")
-    for marker in (
-        "concurrency:",
-        "gh900-start-${{ github.repository }}",
-        "cancel-in-progress: false",
-    ):
+    for marker in ("concurrency:", "gh900-start-${{ github.repository }}", "cancel-in-progress: false"):
         if marker not in start:
             errors.append(f"Step 0 startup serialization contract is missing: {marker}")
     for marker in (
@@ -227,7 +285,7 @@ def main() -> int:
     print(
         f"Fixture/runtime contracts passed: {len(calls)} copied fixtures, 12 activity modules, "
         "16 clean assessments with complete/decodable hash coverage, serialized/self-healing runtime, "
-        "race-safe merged-PR validation, bytecode-clean learner provisioning."
+        "race-safe/durable merged-PR validation, bytecode-clean learner provisioning."
     )
     return 0
 
