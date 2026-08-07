@@ -194,21 +194,18 @@ A secret-scanning alert should trigger credential-provider remediation (for exam
 
 Official unit: <https://learn.microsoft.com/en-us/training/modules/maintain-secure-repository-github/4-exercise-secure-repository-supply-chain>
 
-The integrated lab uses `lab/module-11-security`.
+The interactive exercise creates a temporary security workspace on `lab/m11-u04`. The learner must:
 
-The learner must create/configure:
+1. create root `SECURITY.md` with a responsible vulnerability-disclosure process;
+2. create `.gitignore` protecting the supplied fake local-secret path;
+3. create `.github/dependabot.yml` for the supplied npm/package manifest;
+4. create `.github/CODEOWNERS` with ownership for `exercise/sensitive/`;
+5. inspect the supplied `package.json` as dependency-graph/Dependabot input;
+6. post a unit-scoped `/reflection ...` that designs repository rules requiring PRs, checks, and meaningful review and explains secret remediation using **revocation/rotation plus appropriate history handling**;
+7. where available, inspect Dependabot, code-scanning, and secret-scanning surfaces under **Security**;
+8. commit and push the temporary configuration.
 
-1. `SECURITY.md` with a responsible disclosure process;
-2. `.gitignore` protecting the supplied local-secret/example files;
-3. `.github/dependabot.yml` for the sample package ecosystem;
-4. a `CODEOWNERS` rule for the supplied sensitive path;
-5. a repository-rules design worksheet that requires PRs, checks, and review;
-6. a sample dependency manifest used to inspect the dependency graph/Dependabot behavior;
-7. a secret-remediation scenario explaining **rotation + history handling**, not simply deleting the latest file.
-
-Where available, learners also inspect Security → Dependabot/Code scanning/Secret scanning in their copy.
-
-The exercise deliberately uses fake example secrets only. Never paste a real credential into the repository for training.
+The validator checks the real generated configuration plus the unit-scoped governance/remediation reflection. The exercise deliberately uses fake training data only; never paste a real credential into the repository. Root `SECURITY.md` and `.github/CODEOWNERS` are intentionally created only for this lesson and disappear with the temporary branches after completion.
 
 ---
 
