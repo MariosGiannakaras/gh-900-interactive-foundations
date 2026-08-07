@@ -67,21 +67,35 @@ jobs:
       - name: Audit on-demand workspace fixture contracts
         run: python3 .gh900/quality/fixture_contracts.py
 
-      - name: Audit semantic depth against pinned Microsoft source
+      - name: Audit source depth against pinned Microsoft Learn
         run: python3 .gh900/quality/semantic.py
+
+      - name: Audit required concepts in all 106 learner-visible units
+        run: python3 .gh900/quality/concept_coverage.py
+
+      - name: Audit January 2026 GH-900 exam objectives
+        run: python3 .gh900/quality/exam_coverage.py
+
+      - name: Simulate all 106 runtime states and protocol contracts
+        run: python3 .gh900/quality/simulate_runtime.py
 
       - name: Compile runtime and quality helpers
         run: >-
           python3 -m py_compile
           .gh900/course_unit_state.py
+          .gh900/runtime_protocol.py
           .gh900/workspace.py
           .gh900/validate_activity.py
           .gh900/validate_activity_core.py
           .gh900/validate_assessment.py
+          .gh900/validate_checkpoint.py
           .gh900/validate_scenario.py
           .gh900/quality/audit.py
           .gh900/quality/fixture_contracts.py
           .gh900/quality/semantic.py
+          .gh900/quality/concept_coverage.py
+          .gh900/quality/exam_coverage.py
+          .gh900/quality/simulate_runtime.py
 
       - name: Parse workflow YAML
         shell: bash
@@ -146,22 +160,37 @@ jobs:
           done
           echo "All malformed assessments are rejected."
 
-      - name: Confirm shallow scenarios are rejected
+      - name: Confirm unstructured or shallow scenarios are rejected
         shell: bash
         run: |
           set -euo pipefail
           for unit in m03-u07 m07-u06 m12-u05 m13-u05; do
             set +e
-            python3 .gh900/validate_scenario.py --unit "$unit" --response "too short" >/tmp/scenario.txt 2>&1
+            python3 .gh900/validate_scenario.py --unit "$unit" --response "authentication authorization policy team usage cost usage cost usage cost" >/tmp/scenario.txt 2>&1
             result=$?
             set -e
             if [[ "$result" -eq 0 ]]; then
-              echo "Shallow scenario $unit unexpectedly passed."
+              echo "Unstructured scenario $unit unexpectedly passed."
               cat /tmp/scenario.txt
               exit 1
             fi
           done
-          echo "All shallow scenario responses are rejected."
+          echo "All unstructured/shallow scenario responses are rejected."
+
+      - name: Confirm incomplete account-aware checkpoint is rejected
+        shell: bash
+        run: |
+          set -euo pipefail
+          set +e
+          python3 .gh900/validate_checkpoint.py --unit m16-u03 --response "access=unavailable" >/tmp/checkpoint.txt 2>&1
+          result=$?
+          set -e
+          if [[ "$result" -eq 0 ]]; then
+            echo "Incomplete M16-U03 checkpoint unexpectedly passed."
+            cat /tmp/checkpoint.txt
+            exit 1
+          fi
+          echo "Incomplete account-aware checkpoint is rejected."
 
       - name: Confirm unprepared hands-on states are rejected
         shell: bash
